@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, CheckCircle, AlertCircle, User, Send } from 'lucide-react';
-import { auth, db, storage } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function TeacherOnboarding() {
   const router = useRouter();
@@ -19,6 +18,7 @@ export default function TeacherOnboarding() {
     bio: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [documentBase64, setDocumentBase64] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -32,8 +32,22 @@ export default function TeacherOnboarding() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (limit to ~1MB for Base64 efficiency)
+      if (file.size > 1024 * 1024) {
+        setError('File size must be less than 1MB for Base64 encoding.');
+        return;
+      }
+
       setSelectedFile(file);
       setError('');
+      
+      // Convert file to Base64 using FileReader
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        setDocumentBase64(base64);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -51,7 +65,7 @@ export default function TeacherOnboarding() {
     setSubmitting(true);
 
     try {
-      // Validation: Check if a file is actually selected
+      // Validation
       if (!selectedFile) {
         alert('Please upload a document first.');
         return;
@@ -68,37 +82,30 @@ export default function TeacherOnboarding() {
         return;
       }
 
-      // Storage Upload: Use uploadBytes to save file to verification_docs/${user.uid}
-      console.log('Starting file upload...');
-      const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
-      const storageRef = ref(storage, `verification_docs/${currentUser.uid}/${fileName}`);
+      // Submission: Save directly to Firestore with Base64
+      console.log('Starting submission with Base64...');
       
-      const uploadSnapshot = await uploadBytes(storageRef, selectedFile);
-      console.log('File uploaded successfully');
-
-      // Get URL: Wait for upload to finish, then fetch downloadURL
-      const downloadURL = await getDownloadURL(uploadSnapshot.ref);
-      console.log('Download URL obtained:', downloadURL);
-
-      // Firestore Update: Use updateDoc to save required fields
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
         verificationStatus: 'pending',
-        documentUrl: downloadURL,
         isVerified: false,
+        documentBase64: documentBase64,
+        documentName: selectedFile.name,
+        documentSize: selectedFile.size,
+        documentType: selectedFile.type,
         fullName: formData.fullName.trim(),
         expertise: formData.expertise.trim(),
         bio: formData.bio.trim(),
         submittedAt: serverTimestamp()
       });
-      console.log('Firestore updated successfully');
+      
+      console.log('Firestore updated successfully with Base64 document');
 
-      // Success Step: After submission, immediately switch to success UI
+      // Success UI: Hide form and show success message
       setStep('success');
 
     } catch (error) {
-      // Error Tracking: Use try-catch with alert(error.message) for debugging
-      console.error("FIREBASE_ERROR:", error.code, error.message);
+      console.error('FIREBASE_ERROR:', error.code, error.message);
       alert(error.message || 'Registration failed');
       setError(error.message || 'Registration failed');
     } finally {
@@ -130,7 +137,7 @@ export default function TeacherOnboarding() {
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-[#1D1D1F] mb-4">Submission Received!</h2>
+          <h2 className="text-3xl font-bold text-[#1D1D1F] mb-4">Application Submitted!</h2>
           <p className="text-zinc-600 text-lg mb-6">
             Admin will review your profile in 2-3 hours. You will get access once approved.
           </p>
@@ -233,6 +240,7 @@ export default function TeacherOnboarding() {
                   <div className="mt-3 flex items-center gap-2 text-sm text-zinc-600">
                     <FileText className="w-4 h-4" />
                     <span>{selectedFile.name}</span>
+                    <span className="text-xs text-zinc-400">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                   </div>
                 )}
               </div>
