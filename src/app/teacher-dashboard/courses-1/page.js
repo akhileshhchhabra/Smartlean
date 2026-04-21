@@ -19,7 +19,22 @@ export default function TeacherCoursesPage() {
   const [showStudents, setShowStudents] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Fetch only this teacher's courses
+  // Fetch real-time student count for a specific course
+  const fetchStudentCountForCourse = async (courseId) => {
+    try {
+      const enrollmentsQuery = query(
+        collection(db, 'enrollments'),
+        where('courseId', '==', courseId)
+      );
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+      return enrollmentsSnapshot.size;
+    } catch (error) {
+      console.error('Error fetching student count:', error);
+      return 0;
+    }
+  };
+
+  // Fetch only this teacher's courses with real-time student counts
   const fetchMyCourses = async () => {
     setLoading(true);
     try {
@@ -33,7 +48,19 @@ export default function TeacherCoursesPage() {
       
       const snap = await getDocs(q);
       const courseList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCourses(courseList);
+      
+      // Fetch real-time student count for each course
+      const coursesWithCounts = await Promise.all(
+        courseList.map(async (course) => {
+          const studentCount = await fetchStudentCountForCourse(course.id);
+          return {
+            ...course,
+            studentCount: studentCount
+          };
+        })
+      );
+      
+      setCourses(coursesWithCounts);
     } catch (err) {
       console.error("Error fetching courses:", err);
     } finally {
@@ -64,6 +91,24 @@ export default function TeacherCoursesPage() {
       setSelectedFile(file);
       const preview = URL.createObjectURL(file);
       setImagePreview(preview);
+    }
+  };
+
+  // Refresh student counts after returning from students view
+  const refreshStudentCounts = async () => {
+    try {
+      const coursesWithCounts = await Promise.all(
+        courses.map(async (course) => {
+          const studentCount = await fetchStudentCountForCourse(course.id);
+          return {
+            ...course,
+            studentCount: studentCount
+          };
+        })
+      );
+      setCourses(coursesWithCounts);
+    } catch (error) {
+      console.error('Error refreshing student counts:', error);
     }
   };
 
@@ -385,9 +430,10 @@ export default function TeacherCoursesPage() {
             <ActiveStudents
               courseId={selectedCourse.id}
               courseTitle={selectedCourse.title}
-              onBack={() => {
+              onBack={async () => {
                 setShowStudents(false);
                 setSelectedCourse(null);
+                await refreshStudentCounts();
               }}
             />
           </div>
