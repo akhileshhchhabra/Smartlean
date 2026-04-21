@@ -77,7 +77,8 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     loading,
-    initializing
+    initializing,
+    isSubscribed: user?.isSubscribed || false
   };
 
   return (
