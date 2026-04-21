@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - Users can read/write their own documents
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Courses collection - Teachers can manage their own courses, everyone can read
+    match /courses/{courseId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+      allow update: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+    }
+    
+    // Enrollments collection - Students can read their own enrollments, teachers can read enrollments for their courses
+    match /enrollments/{enrollmentId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.studentId;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+      allow delete: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+    }
+    
+    // Doubts collection - Students can create doubts for their courses, teachers can manage doubts for their courses
+    match /doubts/{doubtId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.studentId;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.teacherId || 
+         request.auth.uid == resource.data.studentId);
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+    }
+    
+    // Assignments collection - Teachers can manage assignments for their courses, students can read
+    match /assignments/{assignmentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+      allow update: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.teacherId;
+    }
+    
+    // Submissions collection - Students can manage their own submissions, teachers can read submissions for their assignments
+    match /submissions/{submissionId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.studentId;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+      allow delete: if request.auth != null && 
+        (request.auth.uid == resource.data.studentId || 
+         request.auth.uid == resource.data.teacherId);
+    }
+    
+    // Admin can read all documents (for admin verification page)
+    match /{document=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.email == 'your-admin-email@example.com'; // Replace with your admin email
+    }
+  }
+}

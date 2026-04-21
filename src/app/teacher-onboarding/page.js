@@ -113,13 +113,27 @@ export default function TeacherOnboarding() {
     setError('');
     
     try {
+      console.log('Starting verification submission...');
       const currentUser = auth.currentUser;
       
-      // Upload file to Firebase Storage
-      const fileRef = ref(storage, `verification_docs/${currentUser.uid}_${Date.now()}`);
-      await uploadBytes(fileRef, selectedFile);
-      const downloadURL = await getDownloadURL(fileRef);
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
       
+      console.log('Uploading file to Firebase Storage...');
+      // Create a unique file name with user ID and timestamp
+      const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
+      const fileRef = ref(storage, `verification_docs/${fileName}`);
+      
+      // Upload file to Firebase Storage
+      const uploadResult = await uploadBytes(fileRef, selectedFile);
+      console.log('File uploaded successfully:', uploadResult);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(fileRef);
+      console.log('Download URL obtained:', downloadURL);
+      
+      console.log('Updating Firestore user document...');
       // Update user document in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
@@ -127,11 +141,15 @@ export default function TeacherOnboarding() {
         expertise: formData.expertise,
         bio: formData.bio,
         documentUrl: downloadURL,
+        documentFileName: fileName, // Store file name for reference
         verificationStatus: 'pending',
         isVerified: false,
         submittedAt: serverTimestamp()
       });
       
+      console.log('Firestore document updated successfully');
+      
+      // Set success state
       setSuccess(true);
       
       // Redirect after 3 seconds
@@ -140,8 +158,28 @@ export default function TeacherOnboarding() {
       }, 3000);
       
     } catch (error) {
-      console.error('Error submitting verification:', error);
-      setError('Failed to submit verification. Please try again.');
+      console.error('Detailed error submitting verification:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to submit verification. Please try again.';
+      
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = 'Permission denied. Please check your storage permissions.';
+      } else if (error.code === 'storage/canceled') {
+        errorMessage = 'Upload was cancelled. Please try again.';
+      } else if (error.code === 'storage/unknown') {
+        errorMessage = 'An unknown error occurred during upload.';
+      } else if (error.code === 'firestore/permission-denied') {
+        errorMessage = 'Permission denied. Please check your database permissions.';
+      } else if (error.code === 'firestore/not-found') {
+        errorMessage = 'User document not found. Please contact support.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
