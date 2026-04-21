@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BookOpen, User, ArrowRight, Star, Clock, ShoppingCart, Play } from 'lucide-react';
+import { BookOpen, User, ArrowRight, Star, Clock, ShoppingCart, Play, AlertCircle } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, increment, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -16,39 +16,122 @@ export default function CoursesPage() {
   const [enrollments, setEnrollments] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const user = auth.currentUser;
-        if (!user) return;
+        if (!user) {
+          setError('No user logged in');
+          setLoading(false);
+          return;
+        }
 
-        // Fetch ALL courses from Firestore without any filters
+        // Fetch ALL courses from Firestore with proper error handling
         const coursesSnapshot = await getDocs(collection(db, 'courses'));
-        const coursesList = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Check if courses collection exists and has documents
+        if (!coursesSnapshot || coursesSnapshot.empty) {
+          console.log('No courses found in database');
+          setCourses([]);
+          setFilteredCourses([]);
+          setLoading(false);
+          return;
+        }
+
+        const coursesList = coursesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || 'Untitled Course',
+            description: data.description || '',
+            teacherName: data.teacherName || 'Unknown Instructor',
+            thumbnailUrl: data.thumbnailUrl || '',
+            price: data.price || 0,
+            duration: data.duration || '0 minutes',
+            level: data.level || 'Beginner',
+            rating: data.rating || 0,
+            studentCount: data.studentCount || 0,
+            category: data.category || 'General'
+          };
+        });
+        
+        console.log('Fetched courses:', coursesList);
         setCourses(coursesList);
 
-        // Fetch user's enrollments
-        const enrollmentsQuery = query(collection(db, 'enrollments'), where('studentId', '==', user.uid));
-        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-        const enrollmentsList = enrollmentsSnapshot.docs.map(doc => doc.data());
-        setEnrollments(enrollmentsList);
-
-        // Fetch user data
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const subscriptionData = {
-            subscriptionPlan: userData.subscriptionPlan || null,
-            enrolledCourses: userData.enrolledCourses || [],
-            startedCourses: userData.startedCourses || [],
-            purchasedCourses: userData.purchasedCourses || []
-          };
-          setUserSubscription(subscriptionData);
-          filterCourses(coursesList, subscriptionData);
+        // Fetch user's enrollments with proper error handling
+        try {
+          const enrollmentsQuery = query(collection(db, 'enrollments'), where('studentId', '==', user.uid));
+          const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+          
+          const enrollmentsList = enrollmentsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              studentId: data.studentId,
+              courseId: data.courseId,
+              courseTitle: data.courseTitle || 'Untitled Course',
+              enrolledAt: data.enrolledAt?.toDate?.() || new Date(),
+              studentEmail: data.studentEmail || ''
+            };
+          });
+          
+          console.log('Fetched enrollments:', enrollmentsList);
+          setEnrollments(enrollmentsList);
+        } catch (enrollmentError) {
+          console.error('Error fetching enrollments:', enrollmentError);
+          setEnrollments([]);
         }
+
+        // Fetch user data with proper error handling
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const subscriptionData = {
+              subscriptionPlan: userData.subscriptionPlan || null,
+              enrolledCourses: Array.isArray(userData.enrolledCourses) ? userData.enrolledCourses : [],
+              startedCourses: Array.isArray(userData.startedCourses) ? userData.startedCourses : [],
+              purchasedCourses: Array.isArray(userData.purchasedCourses) ? userData.purchasedCourses : []
+            };
+            setUserSubscription(subscriptionData);
+            filterCourses(coursesList, subscriptionData);
+          } else {
+            console.log('No user document found, using default subscription data');
+            const defaultSubscriptionData = {
+              subscriptionPlan: null,
+              enrolledCourses: [],
+              startedCourses: [],
+              purchasedCourses: []
+            };
+            setUserSubscription(defaultSubscriptionData);
+            filterCourses(coursesList, defaultSubscriptionData);
+          }
+        } catch (userError) {
+          console.error('Error fetching user data:', userError);
+          const defaultSubscriptionData = {
+            subscriptionPlan: null,
+            enrolledCourses: [],
+            startedCourses: [],
+            purchasedCourses: []
+          };
+          setUserSubscription(defaultSubscriptionData);
+          filterCourses(coursesList, defaultSubscriptionData);
+        }
+        
+        setError(null);
       } catch (error) {
         console.error('Error fetching data:', error);
+        setError('Failed to load courses. Please try again.');
+        setCourses([]);
+        setEnrollments([]);
+        setUserSubscription({
+          subscriptionPlan: null,
+          enrolledCourses: [],
+          startedCourses: [],
+          purchasedCourses: []
+        });
       } finally {
         setLoading(false);
       }
@@ -59,7 +142,33 @@ export default function CoursesPage() {
 
   const filterCourses = (coursesList, subscriptionData) => {
     // Show ALL courses to students regardless of subscription
-    setFilteredCourses(coursesList);
+    // Add null/undefined checks for subscription data
+    if (!coursesList || !Array.isArray(coursesList)) {
+      console.log('Invalid courses list or subscription data');
+      setFilteredCourses([]);
+      return;
+    }
+
+    if (!subscriptionData) {
+      console.log('No subscription data provided, showing all courses');
+      setFilteredCourses(coursesList);
+      return;
+    }
+
+    // Filter courses based on subscription with proper checks
+    const filtered = coursesList.filter(course => {
+      if (!course || !course.id) return false;
+      
+      const isEnrolled = enrollments.some(enrollment => 
+        enrollment && enrollment.studentId === auth.currentUser?.uid && enrollment.courseId === course.id
+      );
+      
+      // Show all courses, but mark enrollment status
+      return true;
+    });
+
+    console.log('Filtered courses:', filtered);
+    setFilteredCourses(filtered);
   };
 
   const handleEnroll = async (courseId, courseTitle) => {

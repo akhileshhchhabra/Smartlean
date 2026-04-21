@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit } from 'lucide-react';
+import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import ActiveStudents from '@/components/ActiveStudents';
 
 export default function TeacherCoursesPage() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function TeacherCoursesPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: '', category: 'Math', description: '', thumbnailUrl: '' });
+  const [showStudents, setShowStudents] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   // Fetch only this teacher's courses
   const fetchMyCourses = async () => {
@@ -232,6 +235,15 @@ export default function TeacherCoursesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setShowStudents(true);
+                      }}
+                      className="flex items-center gap-1 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-all"
+                    >
+                      <Users className="w-4 h-4" /> View Students
+                    </button>
+                    <button 
                       onClick={() => router.push(`/teacher-dashboard/courses-1`)}
                       className="flex items-center gap-1 text-sm font-semibold text-white bg-[#1D1D1F] hover:bg-zinc-800 px-3 py-2 rounded-xl transition-all"
                     >
@@ -364,6 +376,20 @@ export default function TeacherCoursesPage() {
                 </div>
               </form>
             </div>
+          </div>
+        )}
+
+        {/* Active Students Modal/Overlay */}
+        {showStudents && selectedCourse && (
+          <div className="fixed inset-0 z-[100] bg-white">
+            <ActiveStudents
+              courseId={selectedCourse.id}
+              courseTitle={selectedCourse.title}
+              onBack={() => {
+                setShowStudents(false);
+                setSelectedCourse(null);
+              }}
+            />
           </div>
         )}
       </div>
