@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users, Settings } from 'lucide-react';
+import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users, Settings, Upload } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import ActiveStudents from '@/components/ActiveStudents';
@@ -19,7 +19,6 @@ export default function TeacherCoursesPage() {
   const [showStudents, setShowStudents] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Fetch real-time student count for a specific course
   const fetchStudentCountForCourse = async (courseId) => {
     try {
       const enrollmentsQuery = query(
@@ -34,32 +33,20 @@ export default function TeacherCoursesPage() {
     }
   };
 
-  // Fetch only this teacher's courses with real-time student counts
   const fetchMyCourses = async () => {
     setLoading(true);
     try {
       const user = auth.currentUser;
       if (!user) return;
-      
-      const q = query(
-        collection(db, 'courses'), 
-        where('teacherId', '==', user.uid)
-      );
-      
+      const q = query(collection(db, 'courses'), where('teacherId', '==', user.uid));
       const snap = await getDocs(q);
       const courseList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Fetch real-time student count for each course
       const coursesWithCounts = await Promise.all(
         courseList.map(async (course) => {
           const studentCount = await fetchStudentCountForCourse(course.id);
-          return {
-            ...course,
-            studentCount: studentCount
-          };
+          return { ...course, studentCount };
         })
       );
-      
       setCourses(coursesWithCounts);
     } catch (err) {
       console.error("Error fetching courses:", err);
@@ -68,42 +55,24 @@ export default function TeacherCoursesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchMyCourses();
-  }, []);
+  useEffect(() => { fetchMyCourses(); }, []);
 
-  // File upload handler
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check if file is an image
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file.');
-        return;
-      }
-      
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB.');
-        return;
-      }
-      
+      if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+      if (file.size > 5 * 1024 * 1024) { alert('File size must be less than 5MB.'); return; }
       setSelectedFile(file);
-      const preview = URL.createObjectURL(file);
-      setImagePreview(preview);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  // Refresh student counts after returning from students view
   const refreshStudentCounts = async () => {
     try {
       const coursesWithCounts = await Promise.all(
         courses.map(async (course) => {
           const studentCount = await fetchStudentCountForCourse(course.id);
-          return {
-            ...course,
-            studentCount: studentCount
-          };
+          return { ...course, studentCount };
         })
       );
       setCourses(coursesWithCounts);
@@ -112,66 +81,30 @@ export default function TeacherCoursesPage() {
     }
   };
 
-  // Add New Course Logic with Base64 conversion
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
-    if (!user) {
-      alert("You must be logged in to create a course.");
-      return;
-    }
-
-    // Verification: Check if file object exists before starting conversion
-    console.log("File object verification:", selectedFile);
-    if (!selectedFile) {
-      alert("Please select a photo first");
-      return;
-    }
-
+    if (!user) { alert("You must be logged in to create a course."); return; }
+    if (!selectedFile) { alert("Please select a photo first"); return; }
     setUploading(true);
-    console.log("Saving started...");
-    
     try {
       let thumbnailBase64 = '';
-      
-      // Convert file to Base64 using FileReader
-      console.log("Converting image to Base64:", selectedFile.name);
-      
-      // Check file size for Firestore limit (1MB)
       const fileSizeInMB = selectedFile.size / (1024 * 1024);
-      if (fileSizeInMB > 1) {
-        throw new Error(`Image is too large for Firestore (${fileSizeInMB.toFixed(2)}MB). Please use an image smaller than 1MB.`);
-      }
-      
-      // Convert to Base64
+      if (fileSizeInMB > 1) throw new Error(`Image is too large for Firestore (${fileSizeInMB.toFixed(2)}MB). Please use an image smaller than 1MB.`);
       const reader = new FileReader();
       thumbnailBase64 = await new Promise((resolve, reject) => {
-        reader.onload = (e) => {
-          const result = e.target.result;
-          console.log("Base64 string generated successfully");
-          resolve(result);
-        };
-        reader.onerror = (error) => {
-          console.error("FileReader error:", error);
-          reject(new Error("Failed to convert image to Base64"));
-        };
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (error) => reject(new Error("Failed to convert image to Base64"));
         reader.readAsDataURL(selectedFile);
       });
-      
-      // Fetch user profile to get fullName
-      console.log("Fetching user profile...");
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
       const userData = userDoc.exists() ? userDoc.data() : {};
-      console.log("User profile fetched:", userData.fullName || user.displayName);
-      
-      // Create course document with Base64 string
-      console.log("Creating course document...");
-      const courseDoc = await addDoc(collection(db, 'courses'), {
+      await addDoc(collection(db, 'courses'), {
         title: newCourse.title,
         category: newCourse.category,
         description: newCourse.description,
-        thumbnailUrl: thumbnailBase64, // Save Base64 string directly
+        thumbnailUrl: thumbnailBase64,
         teacherId: user.uid,
         teacherName: userData.fullName || user.displayName || 'Instructor',
         teacherEmail: user.email,
@@ -179,265 +112,432 @@ export default function TeacherCoursesPage() {
         studentCount: 0,
         status: 'active'
       });
-      console.log("Course created successfully with ID:", courseDoc.id);
-      
-      // Success - close modal and refresh
       setShowModal(false);
-      console.log("Modal closed, refreshing course list...");
-      
-      // Refresh course list
       await fetchMyCourses();
-      console.log("Course list refreshed");
-      
-      // Reset states after successful save
       setNewCourse({ title: '', category: 'Math', description: '' });
       setSelectedFile(null);
       setImagePreview(null);
-      console.log("All states cleared");
-      
     } catch (err) {
       console.error("Error creating course:", err);
       alert(`Error creating course: ${err.message || 'Please try again.'}`);
     } finally {
-      // Loading State Fix: Ensure setUploading(false) is always called
       setUploading(false);
-      console.log("Save process completed, loading state reset");
     }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="w-12 h-12 border-4 border-zinc-200 border-t-black rounded-full animate-spin"></div>
-        <div className="text-zinc-500 font-medium">Loading courses...</div>
+      <div style={styles.loadingWrapper}>
+        <div style={styles.spinner}></div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={styles.loadingText}>Loading courses...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#FBFBFD] p-16 lg:p-24">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-tight">
-              Course Studio
-            </h1>
-            <p className="text-zinc-500 mt-1">Manage your teaching curriculum.</p>
-          </div>
-          
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-black text-white px-6 py-3 rounded-[2rem] font-semibold hover:bg-zinc-800 transition-all duration-300 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Create New Course
-          </button>
+    <div style={styles.page}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.heading}>Course Studio</h1>
+          <p style={styles.subheading}>Manage your teaching curriculum.</p>
         </div>
+        <button style={styles.btnCreate} onClick={() => setShowModal(true)}
+          onMouseEnter={e => e.currentTarget.style.background = '#222'}
+          onMouseLeave={e => e.currentTarget.style.background = '#111'}>
+          <Plus size={15} strokeWidth={2.5} />
+          Create New Course
+        </button>
+      </div>
 
-        {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-8">
+      {/* Grid */}
+      {courses.length > 0 ? (
+        <div style={styles.grid}>
           {courses.map((course) => (
-            <div 
-              key={course.id} 
-              className="group bg-white rounded-3xl border border-zinc-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300"
-            >
-              {/* Course Thumbnail */}
-              {course.thumbnailUrl ? (
-                <img 
-                  src={course.thumbnailUrl} 
-                  alt={course.title}
-                  className="w-full aspect-video object-cover rounded-2xl mb-6"
+            <CourseCard
+              key={course.id}
+              course={course}
+              onViewStudents={() => { setSelectedCourse(course); setShowStudents(true); }}
+              onManage={() => router.push(`/teacher-dashboard/courses-1`)}
+            />
+          ))}
+          {/* Add new card */}
+          <div
+            style={styles.addCard}
+            onClick={() => setShowModal(true)}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f5f5f7'; e.currentTarget.style.borderColor = '#aaa'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d1d1d6'; }}
+          >
+            <div style={styles.addIcon}><Plus size={20} color="#888" strokeWidth={2} /></div>
+            <span style={{ fontSize: 13, color: '#888' }}>New course</span>
+          </div>
+        </div>
+      ) : (
+        <EmptyState onCreateClick={() => setShowModal(true)} />
+      )}
+
+      {/* Create Course Modal */}
+      {showModal && (
+        <div style={styles.overlay} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
+          <div style={styles.modal}>
+            <button style={styles.modalClose} onClick={() => setShowModal(false)}
+              onMouseEnter={e => e.currentTarget.style.background = '#e8e8ed'}
+              onMouseLeave={e => e.currentTarget.style.background = '#f2f2f7'}>
+              <X size={16} color="#666" />
+            </button>
+            <h2 style={styles.modalTitle}>Create New Course</h2>
+            <p style={styles.modalSub}>Add a new course to your teaching portfolio.</p>
+
+            <form onSubmit={handleCreateCourse}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Course Title</label>
+                <input
+                  required
+                  style={styles.input}
+                  placeholder="Enter course title"
+                  value={newCourse.title}
+                  onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = '#111'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
                 />
-              ) : (
-                <div className="w-full aspect-video bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
-                  <BookOpen className="w-12 h-12 text-white/80" />
-                </div>
-              )}
+              </div>
 
-              {/* Course Content */}
-              <div className="space-y-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-[#1D1D1F] leading-tight group-hover:text-blue-600 transition-colors">
-                    {course.title}
-                  </h3>
-                  <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold uppercase tracking-wider">
-                    {course.category}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-zinc-500">
-                  <User className="w-4 h-4" />
-                  {course.studentCount || 0} Students
+              <div style={styles.twoCol}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Category</label>
+                  <select
+                    style={styles.input}
+                    value={newCourse.category}
+                    onChange={e => setNewCourse({ ...newCourse, category: e.target.value })}
+                    onFocus={e => e.currentTarget.style.borderColor = '#111'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
+                  >
+                    <option value="Math">Mathematics</option>
+                    <option value="Science">Science</option>
+                    <option value="Programming">Programming</option>
+                    <option value="Design">UI/UX Design</option>
+                    <option value="Business">Business</option>
+                  </select>
                 </div>
 
-                {/* Footer Info */}
-                <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-zinc-500 font-medium">Active</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => {
-                        setSelectedCourse(course);
-                        setShowStudents(true);
-                      }}
-                      className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 px-4 py-2 rounded-lg transition-all border border-zinc-200"
-                    >
-                      <Users className="w-4 h-4" /> View Students
-                    </button>
-                    <button 
-                      onClick={() => router.push(`/teacher-dashboard/courses-1`)}
-                      className="flex items-center gap-2 text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 px-4 py-2 rounded-lg transition-all"
-                    >
-                      <Settings className="w-4 h-4" /> Manage
-                    </button>
-                  </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Thumbnail</label>
+                  <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} id="thumb-upload" />
+                  <label htmlFor="thumb-upload" style={styles.uploadArea}>
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+                    ) : (
+                      <>
+                        <Upload size={18} color="#aaa" strokeWidth={1.8} />
+                        <span style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>Upload image</span>
+                        <span style={{ fontSize: 11, color: '#bbb' }}>PNG, JPG up to 5MB</span>
+                      </>
+                    )}
+                  </label>
                 </div>
               </div>
-            </div>
-          ))}
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description</label>
+                <textarea
+                  required
+                  style={{ ...styles.input, height: 100, resize: 'none' }}
+                  placeholder="Describe your course..."
+                  value={newCourse.description}
+                  onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
+                  onFocus={e => e.currentTarget.style.borderColor = '#111'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
+                />
+              </div>
+
+              <div style={styles.modalActions}>
+                <button type="button" style={styles.btnCancel} disabled={uploading}
+                  onClick={() => setShowModal(false)}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e8e8ed'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#f2f2f7'}>
+                  Cancel
+                </button>
+                <button type="submit" style={{ ...styles.btnSubmit, opacity: uploading ? 0.6 : 1 }} disabled={uploading}
+                  onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = '#222'; }}
+                  onMouseLeave={e => e.currentTarget.style.background = '#111'}>
+                  {uploading ? 'Saving...' : 'Create Course'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Active Students Overlay */}
+      {showStudents && selectedCourse && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#fff' }}>
+          <ActiveStudents
+            courseId={selectedCourse.id}
+            courseTitle={selectedCourse.title}
+            onBack={async () => {
+              setShowStudents(false);
+              setSelectedCourse(null);
+              await refreshStudentCounts();
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CourseCard({ course, onViewStudents, onManage }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      style={{ ...styles.card, ...(hovered ? styles.cardHover : {}) }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Thumbnail */}
+      {course.thumbnailUrl ? (
+        <img src={course.thumbnailUrl} alt={course.title} style={styles.thumb} />
+      ) : (
+        <div style={styles.thumbPlaceholder}>
+          <BookOpen size={32} color="rgba(255,255,255,0.75)" strokeWidth={1.5} />
+        </div>
+      )}
+
+      <div style={styles.cardBody}>
+        <div style={styles.cardTop}>
+          <h3 style={{ ...styles.cardTitle, color: hovered ? '#2563eb' : '#111' }}>{course.title}</h3>
+          <span style={styles.badge}>{course.category}</span>
         </div>
 
-        {/* Empty State */}
-        {courses.length === 0 && (
-          <div className="bg-white rounded-[4rem] border border-zinc-100 p-16 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-[3rem] flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-[#1D1D1F] mb-4">No courses yet</h3>
-            <p className="text-zinc-500 mb-6">Create your first course to start teaching.</p>
-            <button 
-              onClick={() => setShowModal(true)}
-              className="bg-black text-white px-6 py-3 rounded-[2rem] font-semibold hover:bg-zinc-800 transition-all duration-300 flex items-center gap-2 mx-auto"
-            >
-              <Plus className="w-4 h-4" /> Create Course
+        <div style={styles.metaRow}>
+          <User size={13} color="#999" strokeWidth={1.8} />
+          <span style={styles.metaText}>{course.studentCount || 0} Students</span>
+        </div>
+
+        <div style={styles.cardDivider} />
+
+        <div style={styles.cardFooter}>
+          <div style={styles.statusBadge}>
+            <span style={styles.statusDot} />
+            <span style={{ fontSize: 12, color: '#888' }}>Active</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              style={styles.btnOutline}
+              onClick={onViewStudents}
+              onMouseEnter={e => e.currentTarget.style.background = '#f5f5f7'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+              <Users size={13} strokeWidth={1.8} />
+              Students
+            </button>
+            <button
+              style={styles.btnDark}
+              onClick={onManage}
+              onMouseEnter={e => e.currentTarget.style.background = '#333'}
+              onMouseLeave={e => e.currentTarget.style.background = '#111'}>
+              <Settings size={13} strokeWidth={1.8} />
+              Manage
             </button>
           </div>
-        )}
-
-        {/* Create Course Modal */}
-        {showModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setShowModal(false)} />
-            
-            <div className="bg-white w-full max-w-2xl p-16 rounded-[3rem] shadow-xl relative z-[101] overflow-y-auto max-h-[90vh]">
-              <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 p-2 hover:bg-zinc-100 rounded-full transition-all">
-                <X className="w-5 h-5 text-zinc-400" />
-              </button>
-              
-              <h2 className="text-3xl font-bold text-[#1D1D1F] font-['Syne'] mb-2">Create New Course</h2>
-              <p className="text-zinc-500 mb-8">Add a new course to your teaching portfolio.</p>
-              
-              <form onSubmit={handleCreateCourse} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-700">Course Title</label>
-                  <input 
-                    required 
-                    className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all"
-                    placeholder="Enter course title"
-                    value={newCourse.title}
-                    onChange={e => setNewCourse({...newCourse, title: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Category</label>
-                    <select 
-                      className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all appearance-none"
-                      value={newCourse.category}
-                      onChange={e => setNewCourse({...newCourse, category: e.target.value})}
-                    >
-                      <option value="Math">Mathematics</option>
-                      <option value="Science">Science</option>
-                      <option value="Programming">Programming</option>
-                      <option value="Design">UI/UX Design</option>
-                      <option value="Business">Business</option>
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Course Thumbnail</label>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        id="thumbnail-upload"
-                      />
-                      <label
-                        htmlFor="thumbnail-upload"
-                        className="block w-full h-32 border-2 border-dashed border-zinc-300 rounded-3xl cursor-pointer hover:border-zinc-400 transition-colors relative overflow-hidden"
-                      >
-                        {imagePreview ? (
-                          <img 
-                            src={imagePreview} 
-                            alt="Thumbnail preview" 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-full text-zinc-400">
-                            <Plus className="w-8 h-8 mb-2" />
-                            <span className="text-sm">Click to upload thumbnail</span>
-                            <span className="text-xs mt-1">PNG, JPG up to 5MB</span>
-                          </div>
-                        )}
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-700">Description</label>
-                  <textarea 
-                    required 
-                    className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all h-32 resize-none"
-                    placeholder="Describe your course..."
-                    value={newCourse.description}
-                    onChange={e => setNewCourse({...newCourse, description: e.target.value})}
-                  ></textarea>
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-medium hover:bg-zinc-200 transition-all"
-                    disabled={uploading}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-1 py-3 bg-black text-white rounded-xl font-medium hover:bg-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={uploading}
-                  >
-                    {uploading ? 'Saving...' : 'Create Course'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Active Students Modal/Overlay */}
-        {showStudents && selectedCourse && (
-          <div className="fixed inset-0 z-[100] bg-white">
-            <ActiveStudents
-              courseId={selectedCourse.id}
-              courseTitle={selectedCourse.title}
-              onBack={async () => {
-                setShowStudents(false);
-                setSelectedCourse(null);
-                await refreshStudentCounts();
-              }}
-            />
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
+
+function EmptyState({ onCreateClick }) {
+  return (
+    <div style={styles.emptyWrapper}>
+      <div style={styles.emptyIcon}>
+        <BookOpen size={32} color="rgba(255,255,255,0.85)" strokeWidth={1.5} />
+      </div>
+      <h3 style={{ fontSize: 20, fontWeight: 500, color: '#111', marginBottom: 8 }}>No courses yet</h3>
+      <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Create your first course to start teaching.</p>
+      <button style={styles.btnCreate} onClick={onCreateClick}
+        onMouseEnter={e => e.currentTarget.style.background = '#222'}
+        onMouseLeave={e => e.currentTarget.style.background = '#111'}>
+        <Plus size={15} strokeWidth={2.5} />
+        Create Course
+      </button>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    background: '#FBFBFD',
+    minHeight: '100vh',
+    padding: '56px 64px',
+  },
+  loadingWrapper: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', height: 256, gap: 16,
+  },
+  spinner: {
+    width: 40, height: 40,
+    border: '3px solid #e5e5ea',
+    borderTopColor: '#111',
+    borderRadius: '50%',
+    animation: 'spin 0.75s linear infinite',
+  },
+  loadingText: { fontSize: 14, color: '#888', fontWeight: 500 },
+  header: {
+    display: 'flex', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: 40,
+    flexWrap: 'wrap', gap: 16,
+  },
+  heading: {
+    fontSize: 28, fontWeight: 600, color: '#111',
+    letterSpacing: '-0.5px', margin: 0,
+  },
+  subheading: { fontSize: 14, color: '#888', marginTop: 4 },
+  btnCreate: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    background: '#111', color: '#fff',
+    border: 'none', padding: '10px 20px',
+    borderRadius: 999, fontSize: 14, fontWeight: 500,
+    cursor: 'pointer', transition: 'background 0.2s',
+    whiteSpace: 'nowrap',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gap: 20,
+  },
+  card: {
+    background: '#fff',
+    border: '0.5px solid #e5e5ea',
+    borderRadius: 20, overflow: 'hidden',
+    transition: 'box-shadow 0.25s, transform 0.25s',
+    cursor: 'default',
+  },
+  cardHover: {
+    boxShadow: '0 8px 28px rgba(0,0,0,0.09)',
+    transform: 'translateY(-2px)',
+  },
+  thumb: {
+    width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block',
+  },
+  thumbPlaceholder: {
+    width: '100%', aspectRatio: '16/9',
+    background: 'linear-gradient(135deg, #3b7dd8 0%, #7c4fe0 100%)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  cardBody: { padding: '14px 16px 16px' },
+  cardTop: {
+    display: 'flex', alignItems: 'flex-start',
+    justifyContent: 'space-between', gap: 8, marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 15, fontWeight: 500, lineHeight: 1.35,
+    transition: 'color 0.2s', margin: 0, flex: 1,
+  },
+  badge: {
+    fontSize: 10, fontWeight: 600,
+    padding: '3px 8px', borderRadius: 999,
+    background: '#EEF3FF', color: '#2d5be3',
+    letterSpacing: '0.4px', textTransform: 'uppercase',
+    whiteSpace: 'nowrap', flexShrink: 0,
+  },
+  metaRow: { display: 'flex', alignItems: 'center', gap: 5, marginBottom: 14 },
+  metaText: { fontSize: 13, color: '#999' },
+  cardDivider: { height: '0.5px', background: '#f0f0f5', marginBottom: 12 },
+  cardFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  statusBadge: { display: 'flex', alignItems: 'center', gap: 5 },
+  statusDot: { width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 },
+  btnOutline: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    fontSize: 12, fontWeight: 500,
+    padding: '6px 10px', borderRadius: 10,
+    border: '0.5px solid #d1d1d6',
+    background: '#fff', color: '#333',
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  btnDark: {
+    display: 'flex', alignItems: 'center', gap: 5,
+    fontSize: 12, fontWeight: 500,
+    padding: '6px 10px', borderRadius: 10,
+    border: 'none', background: '#111', color: '#fff',
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  addCard: {
+    border: '1.5px dashed #d1d1d6',
+    borderRadius: 20, minHeight: 220,
+    display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s',
+    gap: 4,
+  },
+  addIcon: {
+    width: 40, height: 40, borderRadius: '50%',
+    background: '#f5f5f7', border: '0.5px solid #e5e5ea',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 6,
+  },
+  emptyWrapper: {
+    background: '#fff', border: '0.5px solid #e5e5ea',
+    borderRadius: 28, padding: '64px 32px',
+    textAlign: 'center', display: 'flex',
+    flexDirection: 'column', alignItems: 'center',
+  },
+  emptyIcon: {
+    width: 72, height: 72, borderRadius: 20,
+    background: 'linear-gradient(135deg, #3b7dd8, #7c4fe0)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 20,
+  },
+  overlay: {
+    position: 'fixed', inset: 0, zIndex: 200,
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(10px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+  },
+  modal: {
+    background: '#fff', borderRadius: 24,
+    padding: '40px 40px 36px', width: '100%', maxWidth: 540,
+    maxHeight: '90vh', overflowY: 'auto', position: 'relative',
+  },
+  modalClose: {
+    position: 'absolute', top: 16, right: 16,
+    background: '#f2f2f7', border: 'none',
+    width: 32, height: 32, borderRadius: '50%',
+    cursor: 'pointer', display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+    transition: 'background 0.15s',
+  },
+  modalTitle: { fontSize: 22, fontWeight: 600, color: '#111', marginBottom: 4 },
+  modalSub: { fontSize: 14, color: '#888', marginBottom: 28 },
+  formGroup: { marginBottom: 18 },
+  label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#555', marginBottom: 6 },
+  input: {
+    width: '100%', padding: '11px 14px',
+    border: '0.5px solid #d1d1d6', borderRadius: 12,
+    fontSize: 14, background: '#fff', color: '#111',
+    outline: 'none', fontFamily: 'inherit',
+    transition: 'border-color 0.15s', boxSizing: 'border-box',
+  },
+  twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 },
+  uploadArea: {
+    display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    width: '100%', height: 110,
+    border: '1.5px dashed #d1d1d6', borderRadius: 12,
+    cursor: 'pointer', overflow: 'hidden',
+    gap: 2,
+  },
+  modalActions: { display: 'flex', gap: 10, marginTop: 24 },
+  btnCancel: {
+    flex: 1, padding: '12px', borderRadius: 12,
+    border: '0.5px solid #d1d1d6', background: '#f2f2f7',
+    color: '#333', fontSize: 14, fontWeight: 500,
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  btnSubmit: {
+    flex: 1, padding: '12px', borderRadius: 12,
+    border: 'none', background: '#111',
+    color: '#fff', fontSize: 14, fontWeight: 500,
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+};
