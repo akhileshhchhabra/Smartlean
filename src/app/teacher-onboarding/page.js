@@ -2,90 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, CheckCircle, AlertCircle, User, BookOpen, Send, Clock, LogOut } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, User, Send } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
-import { collection, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function TeacherOnboarding() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [step, setStep] = useState('form');
   const [submitting, setSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     expertise: '',
     bio: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        router.push('/login');
-        return;
-      }
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
-      try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          
-          // Check if already verified
-          if (userData.isVerified) {
-            router.push('/teacher-dashboard');
-            return;
-          }
-          
-          // Check if already submitted for verification
-          if (userData.verificationStatus === 'pending') {
-            router.push('/teacher-verification-pending');
-            return;
-          }
-          
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error('Error checking user:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUser();
-  }, [router]);
-
-  const handleFileSelect = (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Please upload a PDF, JPG, or PNG file.');
-        return;
-      }
-      
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB.');
-        return;
-      }
-      
       setSelectedFile(file);
       setError('');
-      
-      // Create preview for images
-      if (file.type.startsWith('image/')) {
-        const preview = URL.createObjectURL(file);
-        setFilePreview(preview);
-      } else {
-        setFilePreview(null);
-      }
     }
   };
 
@@ -99,130 +47,63 @@ export default function TeacherOnboarding() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Clear previous errors
     setError('');
-    
-    // ============================================
-    // VALIDATION: Check if file is selected
-    // ============================================
-    if (!selectedFile) {
-      alert('Please upload a document first.');
-      return;
-    }
-    
-    // Validate form fields
-    if (!formData.fullName || !formData.expertise || !formData.bio) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    
     setSubmitting(true);
-    
+
     try {
-      console.log('🚀 Starting verification submission...');
-      
-      // Get authenticated user
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.error("FIREBASE_ERROR:", 'NO_AUTH', 'No authenticated user found');
-        alert('No authenticated user found. Please log in again.');
+      // Validation: Check if a file is actually selected
+      if (!selectedFile) {
+        alert('Please upload a document first.');
         return;
       }
-      
-      console.log('✅ User authenticated:', currentUser.uid);
-      
-      // ============================================
-      // STEP 1: STORAGE UPLOAD
-      // ============================================
-      console.log('📤 Step 1: Uploading file to Firebase Storage...');
-      
-      // Create unique file name with user ID and timestamp
+
+      if (!formData.fullName || !formData.expertise || !formData.bio) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        alert('Please log in first.');
+        return;
+      }
+
+      // Storage Upload: Use uploadBytes to save file to verification_docs/${user.uid}
+      console.log('Starting file upload...');
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
-      console.log('📁 File name:', fileName);
-      console.log('📏 File size:', `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`);
-      
-      // Create storage reference with proper path
       const storageRef = ref(storage, `verification_docs/${currentUser.uid}/${fileName}`);
-      console.log('🗂️ Storage ref created:', `verification_docs/${currentUser.uid}/${fileName}`);
       
-      // Upload file to Firebase Storage using uploadBytes
-      console.log('⬆️ Starting upload...');
       const uploadSnapshot = await uploadBytes(storageRef, selectedFile);
-      console.log('✅ Step 1 Complete: File uploaded to Storage');
-      
-      // ============================================
-      // STEP 2: GET URL
-      // ============================================
-      console.log('🔗 Step 2: Getting download URL...');
-      
-      // Wait for upload to finish, then fetch downloadURL
+      console.log('File uploaded successfully');
+
+      // Get URL: Wait for upload to finish, then fetch downloadURL
       const downloadURL = await getDownloadURL(uploadSnapshot.ref);
-      console.log('✅ Step 2 Complete: Download URL obtained:', downloadURL);
-      
-      // ============================================
-      // STEP 3: FIRESTORE UPDATE
-      // ============================================
-      console.log('💾 Step 3: Updating Firestore user document...');
-      
-      // Update user document in Firestore
+      console.log('Download URL obtained:', downloadURL);
+
+      // Firestore Update: Use updateDoc to save required fields
       const userRef = doc(db, 'users', currentUser.uid);
-      const updateData = {
+      await updateDoc(userRef, {
         verificationStatus: 'pending',
         documentUrl: downloadURL,
         isVerified: false,
         fullName: formData.fullName.trim(),
         expertise: formData.expertise.trim(),
         bio: formData.bio.trim(),
-        documentFileName: fileName,
-        documentSize: selectedFile.size,
-        documentType: selectedFile.type,
         submittedAt: serverTimestamp()
-      };
-      
-      console.log('📝 Update data:', {
-        verificationStatus: updateData.verificationStatus,
-        documentUrl: downloadURL.substring(0, 50) + '...',
-        isVerified: updateData.isVerified
       });
-      
-      await updateDoc(userRef, updateData);
-      console.log('✅ Step 3 Complete: Firestore document updated successfully');
-      
-      // ============================================
-      // STEP 4: SUCCESS FEEDBACK
-      // ============================================
-      console.log('🎉 All steps completed successfully!');
-      
-      // On success, set isSubmitted state to true
-      setIsSubmitted(true);
-      
+      console.log('Firestore updated successfully');
+
+      // Success Step: After submission, immediately switch to success UI
+      setStep('success');
+
     } catch (error) {
-      // ============================================
-      // ERROR TRACKING: Crucial logging and alert
-      // ============================================
+      // Error Tracking: Use try-catch with alert(error.message) for debugging
       console.error("FIREBASE_ERROR:", error.code, error.message);
-      console.error("FULL_ERROR:", error);
-      
-      // User Alert: Show specific Firebase error message
-      if (error.code && error.message) {
-        alert(`Firebase Error (${error.code}): ${error.message}`);
-      } else if (error.message) {
-        alert(`Error: ${error.message}`);
-      } else {
-        alert('Registration failed. Please try again.');
-      }
-      
-      // Also set error state for UI
-      setError(`Error: ${error.message || 'Registration failed'}`);
-      
+      alert(error.message || 'Registration failed');
+      setError(error.message || 'Registration failed');
     } finally {
-      // ============================================
-      // SAFETY: Always reset submitting state
-      // ============================================
+      // Safety: Ensure setSubmitting(false) is always called
       setSubmitting(false);
-      console.log('🔄 Submitting state reset - button unlocked');
-      console.log('🏁 Submission process completed');
     }
   };
 
@@ -234,69 +115,32 @@ export default function TeacherOnboarding() {
     );
   }
 
-  if (isSubmitted) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-8">
-        <div className="bg-white rounded-3xl border border-zinc-100 p-12 max-w-md w-full text-center shadow-sm">
-          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F] mb-4">Submitted!</h2>
-          <p className="text-zinc-600 text-lg mb-6">
-            Admin will review your application in 2-3 hours.
-          </p>
-          <div className="space-y-3">
-            <button
-              onClick={() => router.push('/teacher-dashboard')}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              Go to Dashboard
-            </button>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
+        <div className="text-zinc-500">Please log in to continue.</div>
       </div>
     );
   }
 
-  if (success) {
+  if (step === 'success') {
     return (
       <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-8">
         <div className="bg-white rounded-3xl border border-zinc-100 p-12 max-w-md w-full text-center shadow-sm">
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-[#1D1D1F] mb-4">Application Submitted!</h2>
+          <h2 className="text-3xl font-bold text-[#1D1D1F] mb-4">Submission Received!</h2>
           <p className="text-zinc-600 text-lg mb-6">
-            Your application has been submitted successfully! It will be reviewed (Approved or Denied) by the Admin. Please check back in 2-3 hours.
+            Admin will review your profile in 2-3 hours. You will get access once approved.
           </p>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
-              <Clock className="w-4 h-4" />
-              <span>Review time: 2-3 hours</span>
-            </div>
-            
+          <div className="space-y-3">
             <button
-              onClick={async () => {
-                try {
-                  await auth.signOut();
-                  router.push('/login');
-                } catch (error) {
-                  console.error('Error signing out:', error);
-                }
-              }}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-zinc-800 transition-all"
+              onClick={() => router.push('/')}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors"
             >
-              <LogOut className="w-4 h-4" />
-              Logout
+              <User className="w-4 h-4" />
+              Back to Home
             </button>
           </div>
         </div>
@@ -305,25 +149,28 @@ export default function TeacherOnboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] py-16 px-8">
+    <div className="min-h-screen bg-[#FBFBFD] py-8 px-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <User className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-[#1D1D1F] mb-4">Teacher Verification</h1>
-          <p className="text-zinc-600 text-lg">
-            Complete your profile to start teaching on our platform
-          </p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[#1D1D1F] mb-2">Teacher Verification</h1>
+          <p className="text-zinc-600">Submit your documents for admin verification</p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-zinc-100 p-10 shadow-sm">
-          <div className="space-y-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-zinc-100 p-8 shadow-sm">
+          <div className="space-y-6">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-3">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Full Name
               </label>
               <input
@@ -331,7 +178,7 @@ export default function TeacherOnboarding() {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
                 placeholder="Enter your full name"
                 required
               />
@@ -339,7 +186,7 @@ export default function TeacherOnboarding() {
 
             {/* Expertise */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-3">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Area of Expertise
               </label>
               <input
@@ -347,15 +194,15 @@ export default function TeacherOnboarding() {
                 name="expertise"
                 value={formData.expertise}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all"
-                placeholder="e.g., Mathematics, Physics, Computer Science"
+                className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                placeholder="e.g., Mathematics, Physics, Chemistry"
                 required
               />
             </div>
 
             {/* Bio */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-3">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Professional Bio
               </label>
               <textarea
@@ -363,7 +210,7 @@ export default function TeacherOnboarding() {
                 value={formData.bio}
                 onChange={handleInputChange}
                 rows={4}
-                className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all resize-none"
+                className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent resize-none"
                 placeholder="Tell us about your teaching experience and qualifications..."
                 required
               />
@@ -371,91 +218,48 @@ export default function TeacherOnboarding() {
 
             {/* File Upload */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-3">
+              <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Verification Document
               </label>
               <div className="relative">
                 <input
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="document-upload"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-50 file:text-zinc-700 hover:file:bg-zinc-100"
+                  required
                 />
-                <label
-                  htmlFor="document-upload"
-                  className="block w-full border-2 border-dashed border-zinc-300 rounded-2xl cursor-pointer hover:border-zinc-400 transition-colors relative overflow-hidden"
-                >
-                  {filePreview ? (
-                    <div className="p-8">
-                      <img
-                        src={filePreview}
-                        alt="Document preview"
-                        className="w-full h-48 object-cover rounded-xl mb-4"
-                      />
-                      <div className="text-center">
-                        <FileText className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
-                        <p className="text-sm text-zinc-600">{selectedFile.name}</p>
-                        <p className="text-xs text-zinc-500 mt-1">Click to change file</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-12 text-center">
-                      <Upload className="w-12 h-12 text-zinc-400 mx-auto mb-4" />
-                      <p className="text-lg font-medium text-zinc-700 mb-2">
-                        Upload verification document
-                      </p>
-                      <p className="text-sm text-zinc-500 mb-4">
-                        PDF, JPG, or PNG (max 5MB)
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg">
-                        <Upload className="w-4 h-4" />
-                        Choose File
-                      </div>
-                    </div>
-                  )}
-                </label>
+                {selectedFile && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-zinc-600">
+                    <FileText className="w-4 h-4" />
+                    <span>{selectedFile.name}</span>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
-            {/* Submit Button */}
+          {/* Submit Button */}
+          <div className="mt-8">
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-zinc-900 text-white py-4 rounded-xl font-semibold hover:bg-zinc-800 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Submitting...
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" />
-                  Submit for Verification
+                  <Send className="w-4 h-4" />
+                  <span>Submit for Verification</span>
                 </>
               )}
             </button>
           </div>
         </form>
-
-        {/* Info Section */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-zinc-500">
-            Your documents will be reviewed by our admin team within 24-48 hours.
-          </p>
-          <p className="text-xs text-zinc-400 mt-2">
-            We'll notify you once your verification is complete.
-          </p>
-        </div>
       </div>
     </div>
   );

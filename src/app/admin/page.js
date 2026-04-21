@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, FileText, User, Mail, Calendar, AlertCircle, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Mail, Shield, AlertTriangle, Clock } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
-export default function AdminVerification() {
+export default function AdminPortal() {
   const router = useRouter();
   const [pendingTeachers, setPendingTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,14 +15,14 @@ export default function AdminVerification() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const checkAdminAndFetch = async () => {
+    const checkAdminAndSetup = () => {
       const user = auth.currentUser;
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // Check if user is admin (you can customize this logic)
+      // Check if user is admin
       const adminEmails = ['your-admin-email@example.com']; // Replace with your admin email
       if (!adminEmails.includes(user.email)) {
         setError('Access denied. Admin privileges required.');
@@ -34,17 +34,16 @@ export default function AdminVerification() {
       setupRealtimeListener();
     };
 
-    checkAdminAndFetch();
+    checkAdminAndSetup();
   }, [router]);
 
   const setupRealtimeListener = () => {
     try {
-      console.log('🔍 Setting up real-time listener for pending teachers...');
+      console.log('Setting up real-time listener for pending teachers...');
       
       // Real-time listener for pending teachers
       const q = query(
         collection(db, 'users'),
-        where('role', '==', 'teacher'),
         where('verificationStatus', '==', 'pending')
       );
 
@@ -54,19 +53,19 @@ export default function AdminVerification() {
           ...doc.data()
         }));
         
-        console.log(`📊 Real-time update: ${teachers.length} pending teachers`);
+        console.log(`Real-time update: ${teachers.length} pending teachers`);
         setPendingTeachers(teachers);
         setError('');
         setLoading(false);
       }, (error) => {
-        console.error('❌ Real-time listener error:', error);
+        console.error('Real-time listener error:', error);
         setError('Failed to load real-time data. Please refresh.');
         setLoading(false);
       });
 
       return unsubscribe;
     } catch (error) {
-      console.error('❌ Setup error:', error);
+      console.error('Setup error:', error);
       setError('Failed to setup admin dashboard.');
       setLoading(false);
     }
@@ -77,7 +76,7 @@ export default function AdminVerification() {
     setError('');
 
     try {
-      console.log(`✅ Approving teacher: ${teacherId}`);
+      console.log(`Approving teacher: ${teacherId}`);
       
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
@@ -87,10 +86,10 @@ export default function AdminVerification() {
         reviewedBy: auth.currentUser?.email || 'admin'
       });
       
-      console.log(`✅ Teacher ${teacherId} approved successfully`);
+      console.log(`Teacher ${teacherId} approved successfully`);
       
     } catch (error) {
-      console.error('❌ Error approving teacher:', error);
+      console.error('Error approving teacher:', error);
       alert(`Failed to approve teacher: ${error.message}`);
       setError('Failed to approve teacher. Please try again.');
     } finally {
@@ -98,12 +97,12 @@ export default function AdminVerification() {
     }
   };
 
-  const handleReject = async (teacherId) => {
-    setProcessing(prev => ({ ...prev, [teacherId]: 'rejecting' }));
+  const handleDeny = async (teacherId) => {
+    setProcessing(prev => ({ ...prev, [teacherId]: 'denying' }));
     setError('');
 
     try {
-      console.log(`❌ Rejecting teacher: ${teacherId}`);
+      console.log(`Denying teacher: ${teacherId}`);
       
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
@@ -113,20 +112,20 @@ export default function AdminVerification() {
         reviewedBy: auth.currentUser?.email || 'admin'
       });
       
-      console.log(`❌ Teacher ${teacherId} rejected successfully`);
+      console.log(`Teacher ${teacherId} denied successfully`);
       
     } catch (error) {
-      console.error('❌ Error rejecting teacher:', error);
-      alert(`Failed to reject teacher: ${error.message}`);
-      setError('Failed to reject teacher. Please try again.');
+      console.error('Error denying teacher:', error);
+      alert(`Failed to deny teacher: ${error.message}`);
+      setError('Failed to deny teacher. Please try again.');
     } finally {
       setProcessing(prev => ({ ...prev, [teacherId]: null }));
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp.toDate()).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -135,57 +134,64 @@ export default function AdminVerification() {
     });
   };
 
-  if (!isAdmin) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-8">
-        <div className="bg-white rounded-3xl border border-zinc-100 p-12 max-w-md w-full text-center shadow-sm">
-          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-8 h-8 text-red-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F] mb-4">Access Denied</h2>
-          <p className="text-zinc-600">{error || 'You need admin privileges to access this page.'}</p>
+      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-zinc-500">Loading Admin Portal...</div>
         </div>
       </div>
     );
   }
 
-  if (loading) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
-        <div className="text-zinc-500">Loading pending verifications...</div>
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#1D1D1F] mb-2">Access Denied</h2>
+          <p className="text-zinc-600">{error || 'Admin privileges required.'}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#FBFBFD] py-8 px-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#1D1D1F]">Admin Portal</h1>
+                <p className="text-zinc-600 mt-1">Teacher Verification Dashboard</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-[#1D1D1F]">Teacher Verification</h1>
-              <p className="text-zinc-600">Review and approve teacher verification requests</p>
+            <div className="text-sm text-zinc-500">
+              {auth.currentUser?.email}
             </div>
           </div>
-          
-          {error && (
-            <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
+            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
-                <User className="w-5 h-5 text-amber-600" />
+                <Clock className="w-5 h-5 text-amber-600" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-[#1D1D1F]">{pendingTeachers.length}</div>
@@ -193,7 +199,7 @@ export default function AdminVerification() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
@@ -205,7 +211,7 @@ export default function AdminVerification() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
@@ -213,7 +219,7 @@ export default function AdminVerification() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-[#1D1D1F]">--</div>
-                <div className="text-sm text-zinc-500">Rejected Today</div>
+                <div className="text-sm text-zinc-500">Denied Today</div>
               </div>
             </div>
           </div>
@@ -221,118 +227,102 @@ export default function AdminVerification() {
 
         {/* Pending Teachers List */}
         {pendingTeachers.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-zinc-100 p-16 text-center shadow-sm">
-            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <User className="w-8 h-8 text-zinc-400" />
+          <div className="bg-white rounded-2xl border border-zinc-100 p-16 text-center shadow-sm">
+            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <CheckCircle className="w-8 h-8 text-zinc-400" />
             </div>
-            <h3 className="text-xl font-bold text-[#1D1D1F] mb-4">No Pending Verifications</h3>
-            <p className="text-zinc-600">
-              All teacher verification requests have been processed.
-            </p>
+            <h3 className="text-xl font-semibold text-[#1D1D1F] mb-2">All caught up!</h3>
+            <p className="text-zinc-600">No pending verifications at the moment.</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {pendingTeachers.map((teacher) => (
-              <div key={teacher.id} className="bg-white rounded-3xl border border-zinc-100 p-8 shadow-sm">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Teacher Info */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-6 h-6 text-zinc-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-[#1D1D1F] mb-2">
-                          {teacher.fullName || 'No name provided'}
-                        </h3>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-zinc-600">
-                            <Mail className="w-4 h-4" />
-                            {teacher.email || 'No email'}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-zinc-600">
-                            <Calendar className="w-4 h-4" />
-                            Submitted: {formatDate(teacher.submittedAt)}
-                          </div>
+          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100">
+              <h2 className="text-xl font-semibold text-[#1D1D1F] flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-600" />
+                Pending Verifications
+              </h2>
+            </div>
+
+            <div className="divide-y divide-zinc-100">
+              {pendingTeachers.map((teacher) => (
+                <div key={teacher.id} className="p-6 hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-zinc-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-[#1D1D1F]">{teacher.fullName || 'No name'}</h3>
+                          <p className="text-sm text-zinc-500">{teacher.email || 'No email'}</p>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-semibold text-zinc-700 mb-2">Expertise</h4>
-                        <p className="text-zinc-600">{teacher.expertise || 'Not specified'}</p>
-                      </div>
                       
-                      <div>
-                        <h4 className="text-sm font-semibold text-zinc-700 mb-2">Professional Bio</h4>
-                        <p className="text-zinc-600 leading-relaxed">
-                          {teacher.bio || 'No bio provided'}
-                        </p>
+                      <div className="space-y-2">
+                        <div className="text-sm text-zinc-600">
+                          <span className="font-medium">Expertise:</span> {teacher.expertise || 'Not specified'}
+                        </div>
+                        <div className="text-sm text-zinc-600">
+                          <span className="font-medium">Submitted:</span> {formatDate(teacher.submittedAt)}
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Document & Actions */}
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-sm font-semibold text-zinc-700 mb-3">Verification Document</h4>
-                      {teacher.documentUrl ? (
-                        <a
-                          href={teacher.documentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors"
-                        >
-                          <FileText className="w-5 h-5 text-zinc-600" />
-                          <span className="text-sm text-zinc-700">View Document</span>
-                        </a>
-                      ) : (
-                        <p className="text-sm text-zinc-500">No document uploaded</p>
+                      {teacher.documentUrl && (
+                        <div className="mt-3">
+                          <a
+                            href={teacher.documentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            <FileText className="w-4 h-4" />
+                            View Document
+                          </a>
+                        </div>
                       )}
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="flex items-center gap-2 ml-6">
                       <button
                         onClick={() => handleApprove(teacher.id)}
                         disabled={processing[teacher.id] === 'approving'}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {processing[teacher.id] === 'approving' ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Approving...
+                            <span>Approving...</span>
                           </>
                         ) : (
                           <>
                             <CheckCircle className="w-4 h-4" />
-                            Approve
+                            <span>Approve</span>
                           </>
                         )}
                       </button>
                       
                       <button
-                        onClick={() => handleReject(teacher.id)}
-                        disabled={processing[teacher.id] === 'rejecting'}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleDeny(teacher.id)}
+                        disabled={processing[teacher.id] === 'denying'}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {processing[teacher.id] === 'rejecting' ? (
+                        {processing[teacher.id] === 'denying' ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Denying...
+                            <span>Denying...</span>
                           </>
                         ) : (
                           <>
                             <XCircle className="w-4 h-4" />
-                            Deny
+                            <span>Deny</span>
                           </>
                         )}
                       </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
