@@ -358,11 +358,9 @@ export default function StudentDashboardHome() {
       </div>
 
       {/* Main Content - Full Width */}
-      <div className="space-y-6">
-        {/* My Challenges Section */}
+      {/* <div className="space-y-6">
         <ChallengeInbox />
 
-        {/* Performance Graph Placeholder */}
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
           <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Semester Performance</h2>
           <div className="h-48 bg-[#F5F5F7] rounded-xl flex items-center justify-center">
@@ -372,7 +370,7 @@ export default function StudentDashboardHome() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
