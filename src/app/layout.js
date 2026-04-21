@@ -23,19 +23,19 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${syne.variable} ${inter.variable} h-full antialiased`} suppressHydrationWarning={true}>
-      <body className="min-h-full flex flex-col bg-[#fafafa] font-['Inter'] leading-relaxed tracking-wide">
+      <body className="min-h-full flex flex-col bg-[#F5F5F7] font-['Inter']">
         <AuthProvider>
-          <div className="grain-overlay opacity-30" />
+          <div className="grain-overlay opacity-20" />
           <Navbar />
           
-          {/* Main content with refined container and spacing */}
+          {/* Main content with Apple-style container and spacing */}
           <main className="flex-grow">
-            <div className="max-w-7xl mx-auto px-8 py-6">
+            <div className="max-w-7xl mx-auto px-6 py-8">
               {children}
             </div>
           </main>
 
-          {/* Footer with glassmorphism effect */}
+          {/* Footer */}
           <Footer />
         </AuthProvider>
       </body>
