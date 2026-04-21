@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, FileText, CheckCircle, AlertCircle, User, BookOpen, Send, Clock, LogOut } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
 import { collection, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 
 export default function TeacherOnboarding() {
   const router = useRouter();
@@ -136,17 +136,42 @@ export default function TeacherOnboarding() {
       // Create unique file name with user ID and timestamp
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
       console.log('📁 File name:', fileName);
-      console.log('📏 File size:', selectedFile.size, 'bytes');
-      console.log('� File type:', selectedFile.type);
+      console.log('📏 File size:', `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`);
+      console.log('📂 File type:', selectedFile.type);
       
       // Create storage reference with proper path
       const storageRef = ref(storage, `verification_docs/${fileName}`);
-      console.log('�️ Storage ref created:', `verification_docs/${fileName}`);
+      console.log('🗂️ Storage ref created:', `verification_docs/${fileName}`);
       
-      // Upload file to Firebase Storage
-      const uploadSnapshot = await uploadBytes(storageRef, selectedFile);
-      console.log('✅ Step 1 Complete: File uploaded successfully');
-      console.log('📊 Upload metadata:', uploadSnapshot);
+      // Convert file to Blob for upload (more reliable than File object)
+      const fileBlob = new Blob([selectedFile], { type: selectedFile.type });
+      console.log('📦 Blob created:', `${fileBlob.size} bytes`);
+      
+      // Upload file to Firebase Storage using resumable upload (better for slow networks)
+      console.log('⬆️ Starting resumable upload...');
+      const uploadTask = uploadBytesResumable(storageRef, fileBlob);
+      
+      // Wait for upload to complete with progress tracking
+      const uploadSnapshot = await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed', (snapshot) => {
+          console.log(`📊 Upload state: ${snapshot.state}`);
+          if (snapshot.state === 'running') {
+            console.log(`📈 Progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%`);
+          }
+        });
+        
+        uploadTask.on('error', (error) => {
+          console.error('❌ Upload error:', error);
+          reject(error);
+        });
+        
+        uploadTask.on('complete', () => {
+          console.log('✅ Upload completed successfully');
+          resolve(uploadTask.snapshot);
+        });
+      });
+      
+      console.log('✅ Step 1 Complete: File uploaded to Storage');
       
       // ============================================
       // STEP 2: GET DOWNLOAD URL
@@ -177,8 +202,9 @@ export default function TeacherOnboarding() {
         submittedAt: serverTimestamp()
       };
       
-      console.log('📝 Update data:', {
-        ...updateData,
+      console.log('📝 Update data prepared:', {
+        fullName: updateData.fullName,
+        expertise: updateData.expertise,
         documentUrl: downloadURL.substring(0, 50) + '...' // Truncate for logging
       });
       
@@ -227,13 +253,18 @@ export default function TeacherOnboarding() {
         errorMessage = '❌ Request timeout. Please check your connection and try again.';
       }
       // Network/Connection Errors
-      else if (error.message.includes('network')) {
+      else if (error.message && error.message.includes('network')) {
         errorMessage = '❌ Network error. Please check your internet connection.';
-      } else if (error.message) {
+      } else if (error.message && error.message.includes('timeout')) {
+        errorMessage = '❌ Request timeout. Please try again.';
+      }
+      // Generic Error
+      else if (error.message) {
         errorMessage = `❌ Error: ${error.message}`;
       }
       
-      // Show error message
+      // Show error message with alert for immediate visibility
+      alert(errorMessage);
       setError(errorMessage);
       
     } finally {
