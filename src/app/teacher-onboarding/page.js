@@ -121,7 +121,9 @@ export default function TeacherOnboarding() {
       // Get authenticated user
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        throw new Error('No authenticated user found');
+        console.error('❌ No authenticated user found');
+        setError('No authenticated user found. Please log in again.');
+        return;
       }
       
       console.log('✅ User authenticated:', currentUser.uid);
@@ -129,53 +131,64 @@ export default function TeacherOnboarding() {
       // ============================================
       // STEP 1: UPLOAD TO FIREBASE STORAGE
       // ============================================
-      console.log('📤 Uploading file to Firebase Storage...');
+      console.log('📤 Step 1: Uploading file to Firebase Storage...');
       
       // Create unique file name with user ID and timestamp
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
-      const fileRef = ref(storage, `verification_docs/${fileName}`);
-      
-      console.log('📁 File path:', `verification_docs/${fileName}`);
+      console.log('📁 File name:', fileName);
       console.log('📏 File size:', selectedFile.size, 'bytes');
+      console.log('� File type:', selectedFile.type);
+      
+      // Create storage reference with proper path
+      const storageRef = ref(storage, `verification_docs/${fileName}`);
+      console.log('�️ Storage ref created:', `verification_docs/${fileName}`);
       
       // Upload file to Firebase Storage
-      const uploadResult = await uploadBytes(fileRef, selectedFile);
-      console.log('✅ File uploaded successfully to Storage');
-      console.log('📊 Upload metadata:', uploadResult);
+      const uploadSnapshot = await uploadBytes(storageRef, selectedFile);
+      console.log('✅ Step 1 Complete: File uploaded successfully');
+      console.log('📊 Upload metadata:', uploadSnapshot);
       
       // ============================================
       // STEP 2: GET DOWNLOAD URL
       // ============================================
-      console.log('🔗 Getting download URL...');
-      const downloadURL = await getDownloadURL(fileRef);
-      console.log('✅ Download URL obtained:', downloadURL);
+      console.log('🔗 Step 2: Getting download URL...');
+      
+      // Get download URL from the upload snapshot
+      const downloadURL = await getDownloadURL(uploadSnapshot.ref);
+      console.log('✅ Step 2 Complete: Download URL obtained:', downloadURL);
       
       // ============================================
       // STEP 3: UPDATE FIRESTORE
       // ============================================
-      console.log('💾 Updating Firestore user document...');
+      console.log('💾 Step 3: Updating Firestore user document...');
       
       // Update user document in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
       const updateData = {
-        fullName: formData.fullName,
-        expertise: formData.expertise,
-        bio: formData.bio,
+        fullName: formData.fullName.trim(),
+        expertise: formData.expertise.trim(),
+        bio: formData.bio.trim(),
         documentUrl: downloadURL,
-        documentFileName: fileName, // Store file name for reference
+        documentFileName: fileName,
+        documentSize: selectedFile.size,
+        documentType: selectedFile.type,
         verificationStatus: 'pending',
         isVerified: false,
         submittedAt: serverTimestamp()
       };
       
-      console.log('📝 Update data:', updateData);
+      console.log('📝 Update data:', {
+        ...updateData,
+        documentUrl: downloadURL.substring(0, 50) + '...' // Truncate for logging
+      });
+      
       await updateDoc(userRef, updateData);
-      console.log('✅ Firestore document updated successfully');
+      console.log('✅ Step 3 Complete: Firestore document updated successfully');
       
       // ============================================
       // STEP 4: SUCCESS STATE
       // ============================================
-      console.log('🎉 Submission completed successfully!');
+      console.log('🎉 All steps completed successfully!');
       
       // Set success state only after ALL operations complete
       setSuccess(true);
@@ -184,29 +197,43 @@ export default function TeacherOnboarding() {
       console.error('❌ Submission failed:', error);
       console.error('🔍 Error code:', error.code);
       console.error('📝 Error message:', error.message);
+      console.error('📍 Error stack:', error.stack);
       
       // ============================================
       // SPECIFIC ERROR HANDLING
       // ============================================
-      let errorMessage = 'Failed to submit verification. Please try again.';
+      let errorMessage = 'Registration failed. Please try again.';
       
+      // Firebase Storage Errors
       if (error.code === 'storage/unauthorized') {
-        errorMessage = '❌ Storage permission denied. Please contact support.';
+        errorMessage = '❌ Storage permission denied. Please check your Firebase Storage rules.';
       } else if (error.code === 'storage/canceled') {
         errorMessage = '❌ Upload was cancelled. Please try again.';
       } else if (error.code === 'storage/unknown') {
         errorMessage = '❌ Storage error occurred. Please try again.';
-      } else if (error.code === 'firestore/permission-denied') {
-        errorMessage = '❌ Database permission denied. Please contact support.';
-      } else if (error.code === 'firestore/not-found') {
-        errorMessage = '❌ User document not found. Please contact support.';
       } else if (error.code === 'storage/quota-exceeded') {
         errorMessage = '❌ Storage quota exceeded. Please try a smaller file.';
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        errorMessage = '❌ Too many retry attempts. Please wait and try again.';
+      }
+      // Firebase Firestore Errors
+      else if (error.code === 'firestore/permission-denied') {
+        errorMessage = '❌ Database permission denied. Please check your Firestore rules.';
+      } else if (error.code === 'firestore/not-found') {
+        errorMessage = '❌ User document not found. Please contact support.';
+      } else if (error.code === 'firestore/unavailable') {
+        errorMessage = '❌ Database temporarily unavailable. Please try again.';
+      } else if (error.code === 'firestore/deadline-exceeded') {
+        errorMessage = '❌ Request timeout. Please check your connection and try again.';
+      }
+      // Network/Connection Errors
+      else if (error.message.includes('network')) {
+        errorMessage = '❌ Network error. Please check your internet connection.';
       } else if (error.message) {
         errorMessage = `❌ Error: ${error.message}`;
       }
       
-      // Show error message (could also use toast/alert)
+      // Show error message
       setError(errorMessage);
       
     } finally {
@@ -214,7 +241,7 @@ export default function TeacherOnboarding() {
       // ALWAYS RESET SUBMITTING STATE
       // ============================================
       setSubmitting(false);
-      console.log('🔄 Submitting state reset');
+      console.log('🔄 Submitting state reset - button is clickable again');
       console.log('🏁 Submission process completed (success or error)');
     }
   };
