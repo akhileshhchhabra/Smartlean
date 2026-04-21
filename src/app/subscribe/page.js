@@ -23,6 +23,8 @@ export default function SubscribePage() {
           subscriptionPlan: planType,
           subscriptionStatus: 'active',
           subscriptionExpiry: expiryDate.toISOString(),
+          isSubscribed: true,
+          subscriptionDate: new Date().toISOString(),
           hasSelectedPlan: true,
           planSelectedAt: new Date().toISOString()
         }, { merge: true });

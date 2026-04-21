@@ -37,9 +37,20 @@ export function AuthProvider({ children }) {
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            const isSubscribed = userData.subscriptionStatus === 'active' && 
+                              userData.subscriptionExpiry && 
+                              new Date() <= new Date(userData.subscriptionExpiry);
+            
+            // Store subscription status in localStorage for persistence
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('isSubscribed', isSubscribed.toString());
+              localStorage.setItem('subscriptionExpiry', userData.subscriptionExpiry || '');
+            }
+            
             setUser({ 
               ...user, 
               ...userData,
+              isSubscribed,
               subscriptionStatus: userData.subscriptionStatus || 'inactive',
               subscriptionExpiry: userData.subscriptionExpiry || null
             });

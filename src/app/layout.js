@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from '@/components/Navbar/Navbar';
 import Footer from '@/components/Footer/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
+import SubscriptionGuard from '@/components/SubscriptionGuard';
 
 const syne = Syne({
   variable: "--font-syne",
@@ -31,7 +32,9 @@ export default function RootLayout({ children }) {
           {/* Main content with refined container and spacing */}
           <main className="flex-grow">
             <div className="max-w-7xl mx-auto px-6 py-8">
-              {children}
+              <SubscriptionGuard>
+                {children}
+              </SubscriptionGuard>
             </div>
           </main>
 
