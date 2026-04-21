@@ -33,7 +33,38 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Login successful for user:', userCredential.user.email);
       
-      // Auth Context will handle the redirect automatically based on user data
+      // Get user data and redirect based on role
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          // Redirect based on role
+          if (userData.role === 'Teacher') {
+            console.log('Redirecting teacher to dashboard');
+            router.push('/teacher-dashboard');
+          } else if (userData.role === 'Student') {
+            if (userData.hasSelectedPlan === true) {
+              console.log('Redirecting student to dashboard');
+              router.push('/student-dashboard');
+            } else {
+              console.log('Redirecting student to subscribe');
+              router.push('/subscribe');
+            }
+          } else {
+            console.log('Redirecting other to subscribe');
+            router.push('/subscribe');
+          }
+        } else {
+          console.log('User document not found, redirecting to subscribe');
+          router.push('/subscribe');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        router.push('/subscribe');
+      }
+      
       setError('');
     } catch (err) {
       console.error('Auth login error:', err);

@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,18 @@ export function AuthProvider({ children }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Set Firebase persistence to keep user logged in across sessions
+    const setupAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        console.log('Firebase persistence set to browserLocal');
+      } catch (error) {
+        console.error('Error setting persistence:', error);
+      }
+    };
+
+    setupAuth();
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
       
@@ -25,37 +38,17 @@ export function AuthProvider({ children }) {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUser({ ...user, ...userData });
-            
-            // Redirect based on role
-            if (userData.role === 'Teacher') {
-              console.log('Redirecting teacher to dashboard');
-              router.push('/teacher-dashboard');
-            } else if (userData.role === 'Student') {
-              if (userData.hasSelectedPlan === true) {
-                console.log('Redirecting student to dashboard');
-                router.push('/student-dashboard');
-              } else {
-                console.log('Redirecting student to subscribe');
-                router.push('/subscribe');
-              }
-            } else {
-              console.log('Redirecting other to subscribe');
-              router.push('/subscribe');
-            }
           } else {
-            console.log('User document not found, redirecting to subscribe');
+            console.log('User document not found');
             setUser(user);
-            router.push('/subscribe');
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
           setUser(user);
-          setLoading(false);
         }
       } else {
         // User is logged out
         setUser(null);
-        setLoading(false);
       }
       
       setInitializing(false);
