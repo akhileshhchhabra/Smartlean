@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users, Settings, Upload } from 'lucide-react';
+import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users, Settings, Upload, BarChart3, TrendingUp, Award, Calendar, Video, FileText, Star } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import ActiveStudents from '@/components/ActiveStudents';
 
-export default function TeacherCoursesPage() {
+export default function CourseManagementDashboard() {
   const router = useRouter();
   const [courses, setCourses] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -18,6 +18,7 @@ export default function TeacherCoursesPage() {
   const [newCourse, setNewCourse] = useState({ title: '', category: 'Math', description: '', thumbnailUrl: '' });
   const [showStudents, setShowStudents] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const fetchStudentCountForCourse = async (courseId) => {
     try {
@@ -56,6 +57,11 @@ export default function TeacherCoursesPage() {
   };
 
   useEffect(() => { fetchMyCourses(); }, []);
+
+  // Calculate stats for dashboard
+  const totalStudents = courses.reduce((sum, course) => sum + (course.studentCount || 0), 0);
+  const activeCourses = courses.filter(course => course.status === 'active').length;
+  const totalCourses = courses.length;
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -127,91 +133,298 @@ export default function TeacherCoursesPage() {
 
   if (loading) {
     return (
-      <div style={styles.loadingWrapper}>
-        <div style={styles.spinner}></div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={styles.loadingText}>Loading courses...</p>
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-zinc-200 border-t-black rounded-full animate-spin"></div>
+          <div className="text-zinc-500 font-medium">Loading dashboard...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.heading}>Course Studio</h1>
-          <p style={styles.subheading}>Manage your teaching curriculum.</p>
-        </div>
-        <button style={styles.btnCreate} onClick={() => setShowModal(true)}
-          onMouseEnter={e => e.currentTarget.style.background = '#222'}
-          onMouseLeave={e => e.currentTarget.style.background = '#111'}>
-          <Plus size={15} strokeWidth={2.5} />
-          Create New Course
-        </button>
-      </div>
-
-      {/* Grid */}
-      {courses.length > 0 ? (
-        <div style={styles.grid}>
-          {courses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              onViewStudents={() => { setSelectedCourse(course); setShowStudents(true); }}
-              onManage={() => router.push(`/teacher-dashboard/courses-1`)}
-            />
-          ))}
-          {/* Add new card */}
-          <div
-            style={styles.addCard}
-            onClick={() => setShowModal(true)}
-            onMouseEnter={e => { e.currentTarget.style.background = '#f5f5f7'; e.currentTarget.style.borderColor = '#aaa'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d1d1d6'; }}
-          >
-            <div style={styles.addIcon}><Plus size={20} color="#888" strokeWidth={2} /></div>
-            <span style={{ fontSize: 13, color: '#888' }}>New course</span>
+    <div className="min-h-screen bg-zinc-50">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 text-white px-8 py-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <h1 className="text-4xl font-bold mb-4 tracking-tight">Course Management Dashboard</h1>
+              <p className="text-zinc-300 text-lg">Manage your courses, track student progress, and grow your teaching impact</p>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-white text-zinc-900 px-8 py-4 rounded-[2rem] font-semibold hover:bg-zinc-100 transition-all hover:scale-[1.02] flex items-center gap-3 shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Create New Course
+            </button>
           </div>
         </div>
-      ) : (
-        <EmptyState onCreateClick={() => setShowModal(true)} />
-      )}
+      </div>
+
+      {/* Stats Cards */}
+      <div className="max-w-7xl mx-auto px-8 -mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100 hover:shadow-xl transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-zinc-900">{totalCourses}</p>
+              <p className="text-zinc-500 font-medium">Total Courses</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100 hover:shadow-xl transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-emerald-600" />
+              </div>
+              <Award className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-zinc-900">{totalStudents}</p>
+              <p className="text-zinc-500 font-medium">Total Students</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-100 hover:shadow-xl transition-all hover:scale-[1.02]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-purple-600" />
+              </div>
+              <Star className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-zinc-900">{activeCourses}</p>
+              <p className="text-zinc-500 font-medium">Active Courses</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-8 pb-16">
+        {/* Tabs */}
+        <div className="flex space-x-1 mb-8 bg-zinc-100 p-1 rounded-2xl w-fit">
+          {['overview', 'courses', 'students', 'analytics'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-xl font-medium transition-all capitalize ${
+                activeTab === tab
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white rounded-[2.5rem] shadow-sm border border-zinc-100 p-8">
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 mb-6">Recent Activity</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-6 bg-zinc-50 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-zinc-900">Upcoming Classes</span>
+                    </div>
+                    <p className="text-zinc-600">3 classes scheduled for this week</p>
+                  </div>
+                  <div className="p-6 bg-zinc-50 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-green-600" />
+                      </div>
+                      <span className="font-semibold text-zinc-900">Pending Reviews</span>
+                    </div>
+                    <p className="text-zinc-600">12 assignments awaiting review</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold text-zinc-900 mb-6">Quick Actions</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="p-6 border-2 border-dashed border-zinc-200 rounded-2xl hover:border-zinc-400 hover:bg-zinc-50 transition-all group"
+                  >
+                    <Plus className="w-8 h-8 text-zinc-400 group-hover:text-zinc-600 mb-3" />
+                    <p className="font-medium text-zinc-700">Create Course</p>
+                  </button>
+                  <button
+                    onClick={() => router.push('/teacher-dashboard/assignments')}
+                    className="p-6 border-2 border-dashed border-zinc-200 rounded-2xl hover:border-zinc-400 hover:bg-zinc-50 transition-all group"
+                  >
+                    <FileText className="w-8 h-8 text-zinc-400 group-hover:text-zinc-600 mb-3" />
+                    <p className="font-medium text-zinc-700">Manage Assignments</p>
+                  </button>
+                  <button
+                    onClick={() => router.push('/teacher-dashboard/settings')}
+                    className="p-6 border-2 border-dashed border-zinc-200 rounded-2xl hover:border-zinc-400 hover:bg-zinc-50 transition-all group"
+                  >
+                    <Settings className="w-8 h-8 text-zinc-400 group-hover:text-zinc-600 mb-3" />
+                    <p className="font-medium text-zinc-700">Settings</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'courses' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-zinc-900">Your Courses</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="group bg-white border border-zinc-200 rounded-[2.5rem] overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02]"
+                  >
+                    {course.thumbnailUrl ? (
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-48 object-cover" />
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <BookOpen className="w-12 h-12 text-white/80" />
+                      </div>
+                    )}
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-zinc-900 mb-2 group-hover:text-blue-600 transition-colors">
+                        {course.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
+                        <Users className="w-4 h-4" />
+                        <span>{course.studentCount || 0} students</span>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setSelectedCourse(course); setShowStudents(true); }}
+                          className="flex-1 py-2 px-4 bg-zinc-100 text-zinc-700 rounded-xl font-medium hover:bg-zinc-200 transition-all"
+                        >
+                          View Students
+                        </button>
+                        <button
+                          onClick={() => router.push(`/teacher-dashboard/courses-1`)}
+                          className="flex-1 py-2 px-4 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-all"
+                        >
+                          Manage
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {courses.length === 0 && (
+                  <div className="col-span-full text-center py-16">
+                    <div className="w-20 h-20 bg-zinc-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <BookOpen className="w-10 h-10 text-zinc-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-zinc-900 mb-2">No courses yet</h3>
+                    <p className="text-zinc-500 mb-6">Create your first course to start teaching</p>
+                    <button
+                      onClick={() => setShowModal(true)}
+                      className="bg-zinc-900 text-white px-6 py-3 rounded-[2rem] font-semibold hover:bg-zinc-800 transition-all hover:scale-[1.02] flex items-center gap-2 mx-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Course
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'students' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-zinc-900">Student Overview</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {courses.slice(0, 4).map((course) => (
+                  <div key={course.id} className="p-6 bg-zinc-50 rounded-2xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-zinc-900">{course.title}</h3>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        {course.studentCount || 0} students
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { setSelectedCourse(course); setShowStudents(true); }}
+                      className="w-full py-2 bg-white border border-zinc-200 rounded-xl font-medium hover:bg-zinc-50 transition-all"
+                    >
+                      View All Students
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-zinc-900">Performance Analytics</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl">
+                  <div className="flex items-center gap-3 mb-4">
+                    <BarChart3 className="w-6 h-6 text-blue-600" />
+                    <span className="font-semibold text-zinc-900">Course Engagement</span>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-600 mb-2">87%</p>
+                  <p className="text-zinc-600">Average completion rate</p>
+                </div>
+                <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl">
+                  <div className="flex items-center gap-3 mb-4">
+                    <TrendingUp className="w-6 h-6 text-green-600" />
+                    <span className="font-semibold text-zinc-900">Student Growth</span>
+                  </div>
+                  <p className="text-3xl font-bold text-green-600 mb-2">+23%</p>
+                  <p className="text-zinc-600">Month over month increase</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Create Course Modal */}
       {showModal && (
-        <div style={styles.overlay} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div style={styles.modal}>
-            <button style={styles.modalClose} onClick={() => setShowModal(false)}
-              onMouseEnter={e => e.currentTarget.style.background = '#e8e8ed'}
-              onMouseLeave={e => e.currentTarget.style.background = '#f2f2f7'}>
-              <X size={16} color="#666" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setShowModal(false)} />
+          <div className="bg-white w-full max-w-2xl p-12 rounded-[3rem] shadow-xl relative z-[101] overflow-y-auto max-h-[90vh]">
+            <button onClick={() => setShowModal(false)} className="absolute top-8 right-8 p-2 hover:bg-zinc-100 rounded-full transition-all">
+              <X className="w-5 h-5 text-zinc-400" />
             </button>
-            <h2 style={styles.modalTitle}>Create New Course</h2>
-            <p style={styles.modalSub}>Add a new course to your teaching portfolio.</p>
-
-            <form onSubmit={handleCreateCourse}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Course Title</label>
-                <input
-                  required
-                  style={styles.input}
+            
+            <h2 className="text-3xl font-bold text-zinc-900 mb-2">Create New Course</h2>
+            <p className="text-zinc-500 mb-8">Add a new course to your teaching portfolio</p>
+            
+            <form onSubmit={handleCreateCourse} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">Course Title</label>
+                <input 
+                  required 
+                  className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all"
                   placeholder="Enter course title"
                   value={newCourse.title}
-                  onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
-                  onFocus={e => e.currentTarget.style.borderColor = '#111'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
+                  onChange={e => setNewCourse({...newCourse, title: e.target.value})}
                 />
               </div>
 
-              <div style={styles.twoCol}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Category</label>
-                  <select
-                    style={styles.input}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-700">Category</label>
+                  <select 
+                    className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all appearance-none"
                     value={newCourse.category}
-                    onChange={e => setNewCourse({ ...newCourse, category: e.target.value })}
-                    onFocus={e => e.currentTarget.style.borderColor = '#111'}
-                    onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
+                    onChange={e => setNewCourse({...newCourse, category: e.target.value})}
                   >
                     <option value="Math">Mathematics</option>
                     <option value="Science">Science</option>
@@ -220,48 +433,65 @@ export default function TeacherCoursesPage() {
                     <option value="Business">Business</option>
                   </select>
                 </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Thumbnail</label>
-                  <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} id="thumb-upload" />
-                  <label htmlFor="thumb-upload" style={styles.uploadArea}>
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
-                    ) : (
-                      <>
-                        <Upload size={18} color="#aaa" strokeWidth={1.8} />
-                        <span style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>Upload image</span>
-                        <span style={{ fontSize: 11, color: '#bbb' }}>PNG, JPG up to 5MB</span>
-                      </>
-                    )}
-                  </label>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-700">Course Thumbnail</label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="thumbnail-upload"
+                    />
+                    <label
+                      htmlFor="thumbnail-upload"
+                      className="block w-full h-32 border-2 border-dashed border-zinc-300 rounded-3xl cursor-pointer hover:border-zinc-400 transition-colors relative overflow-hidden"
+                    >
+                      {imagePreview ? (
+                        <img 
+                          src={imagePreview} 
+                          alt="Thumbnail preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-zinc-400">
+                          <Upload className="w-8 h-8 mb-2" />
+                          <span className="text-sm">Click to upload thumbnail</span>
+                          <span className="text-xs mt-1">PNG, JPG up to 5MB</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Description</label>
-                <textarea
-                  required
-                  style={{ ...styles.input, height: 100, resize: 'none' }}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">Description</label>
+                <textarea 
+                  required 
+                  className="w-full p-4 bg-white border border-zinc-200 rounded-xl outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all h-32 resize-none"
                   placeholder="Describe your course..."
                   value={newCourse.description}
-                  onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
-                  onFocus={e => e.currentTarget.style.borderColor = '#111'}
-                  onBlur={e => e.currentTarget.style.borderColor = '#d1d1d6'}
-                />
+                  onChange={e => setNewCourse({...newCourse, description: e.target.value})}
+                ></textarea>
               </div>
 
-              <div style={styles.modalActions}>
-                <button type="button" style={styles.btnCancel} disabled={uploading}
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
                   onClick={() => setShowModal(false)}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e8e8ed'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#f2f2f7'}>
+                  className="flex-1 py-4 bg-zinc-100 text-zinc-700 rounded-xl font-medium hover:bg-zinc-200 transition-all"
+                  disabled={uploading}
+                >
                   Cancel
                 </button>
-                <button type="submit" style={{ ...styles.btnSubmit, opacity: uploading ? 0.6 : 1 }} disabled={uploading}
-                  onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = '#222'; }}
-                  onMouseLeave={e => e.currentTarget.style.background = '#111'}>
-                  {uploading ? 'Saving...' : 'Create Course'}
+                <button 
+                  type="submit" 
+                  className="flex-1 py-4 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={uploading}
+                >
+                  {uploading ? 'Creating...' : 'Create Course'}
                 </button>
               </div>
             </form>
@@ -269,9 +499,9 @@ export default function TeacherCoursesPage() {
         </div>
       )}
 
-      {/* Active Students Overlay */}
+      {/* Active Students Modal/Overlay */}
       {showStudents && selectedCourse && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#fff' }}>
+        <div className="fixed inset-0 z-[100] bg-white">
           <ActiveStudents
             courseId={selectedCourse.id}
             courseTitle={selectedCourse.title}
@@ -286,258 +516,3 @@ export default function TeacherCoursesPage() {
     </div>
   );
 }
-
-function CourseCard({ course, onViewStudents, onManage }) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      style={{ ...styles.card, ...(hovered ? styles.cardHover : {}) }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Thumbnail */}
-      {course.thumbnailUrl ? (
-        <img src={course.thumbnailUrl} alt={course.title} style={styles.thumb} />
-      ) : (
-        <div style={styles.thumbPlaceholder}>
-          <BookOpen size={32} color="rgba(255,255,255,0.75)" strokeWidth={1.5} />
-        </div>
-      )}
-
-      <div style={styles.cardBody}>
-        <div style={styles.cardTop}>
-          <h3 style={{ ...styles.cardTitle, color: hovered ? '#2563eb' : '#111' }}>{course.title}</h3>
-          <span style={styles.badge}>{course.category}</span>
-        </div>
-
-        <div style={styles.metaRow}>
-          <User size={13} color="#999" strokeWidth={1.8} />
-          <span style={styles.metaText}>{course.studentCount || 0} Students</span>
-        </div>
-
-        <div style={styles.cardDivider} />
-
-        <div style={styles.cardFooter}>
-          <div style={styles.statusBadge}>
-            <span style={styles.statusDot} />
-            <span style={{ fontSize: 12, color: '#888' }}>Active</span>
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              style={styles.btnOutline}
-              onClick={onViewStudents}
-              onMouseEnter={e => e.currentTarget.style.background = '#f5f5f7'}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-              <Users size={13} strokeWidth={1.8} />
-              Students
-            </button>
-            <button
-              style={styles.btnDark}
-              onClick={onManage}
-              onMouseEnter={e => e.currentTarget.style.background = '#333'}
-              onMouseLeave={e => e.currentTarget.style.background = '#111'}>
-              <Settings size={13} strokeWidth={1.8} />
-              Manage
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ onCreateClick }) {
-  return (
-    <div style={styles.emptyWrapper}>
-      <div style={styles.emptyIcon}>
-        <BookOpen size={32} color="rgba(255,255,255,0.85)" strokeWidth={1.5} />
-      </div>
-      <h3 style={{ fontSize: 20, fontWeight: 500, color: '#111', marginBottom: 8 }}>No courses yet</h3>
-      <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Create your first course to start teaching.</p>
-      <button style={styles.btnCreate} onClick={onCreateClick}
-        onMouseEnter={e => e.currentTarget.style.background = '#222'}
-        onMouseLeave={e => e.currentTarget.style.background = '#111'}>
-        <Plus size={15} strokeWidth={2.5} />
-        Create Course
-      </button>
-    </div>
-  );
-}
-
-const styles = {
-  page: {
-    background: '#FBFBFD',
-    minHeight: '100vh',
-    padding: '56px 64px',
-  },
-  loadingWrapper: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', height: 256, gap: 16,
-  },
-  spinner: {
-    width: 40, height: 40,
-    border: '3px solid #e5e5ea',
-    borderTopColor: '#111',
-    borderRadius: '50%',
-    animation: 'spin 0.75s linear infinite',
-  },
-  loadingText: { fontSize: 14, color: '#888', fontWeight: 500 },
-  header: {
-    display: 'flex', alignItems: 'flex-start',
-    justifyContent: 'space-between', marginBottom: 40,
-    flexWrap: 'wrap', gap: 16,
-  },
-  heading: {
-    fontSize: 28, fontWeight: 600, color: '#111',
-    letterSpacing: '-0.5px', margin: 0,
-  },
-  subheading: { fontSize: 14, color: '#888', marginTop: 4 },
-  btnCreate: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    background: '#111', color: '#fff',
-    border: 'none', padding: '10px 20px',
-    borderRadius: 999, fontSize: 14, fontWeight: 500,
-    cursor: 'pointer', transition: 'background 0.2s',
-    whiteSpace: 'nowrap',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    gap: 20,
-  },
-  card: {
-    background: '#fff',
-    border: '0.5px solid #e5e5ea',
-    borderRadius: 20, overflow: 'hidden',
-    transition: 'box-shadow 0.25s, transform 0.25s',
-    cursor: 'default',
-  },
-  cardHover: {
-    boxShadow: '0 8px 28px rgba(0,0,0,0.09)',
-    transform: 'translateY(-2px)',
-  },
-  thumb: {
-    width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block',
-  },
-  thumbPlaceholder: {
-    width: '100%', aspectRatio: '16/9',
-    background: 'linear-gradient(135deg, #3b7dd8 0%, #7c4fe0 100%)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  cardBody: { padding: '14px 16px 16px' },
-  cardTop: {
-    display: 'flex', alignItems: 'flex-start',
-    justifyContent: 'space-between', gap: 8, marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 15, fontWeight: 500, lineHeight: 1.35,
-    transition: 'color 0.2s', margin: 0, flex: 1,
-  },
-  badge: {
-    fontSize: 10, fontWeight: 600,
-    padding: '3px 8px', borderRadius: 999,
-    background: '#EEF3FF', color: '#2d5be3',
-    letterSpacing: '0.4px', textTransform: 'uppercase',
-    whiteSpace: 'nowrap', flexShrink: 0,
-  },
-  metaRow: { display: 'flex', alignItems: 'center', gap: 5, marginBottom: 14 },
-  metaText: { fontSize: 13, color: '#999' },
-  cardDivider: { height: '0.5px', background: '#f0f0f5', marginBottom: 12 },
-  cardFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  statusBadge: { display: 'flex', alignItems: 'center', gap: 5 },
-  statusDot: { width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 },
-  btnOutline: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    fontSize: 12, fontWeight: 500,
-    padding: '6px 10px', borderRadius: 10,
-    border: '0.5px solid #d1d1d6',
-    background: '#fff', color: '#333',
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
-  btnDark: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    fontSize: 12, fontWeight: 500,
-    padding: '6px 10px', borderRadius: 10,
-    border: 'none', background: '#111', color: '#fff',
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
-  addCard: {
-    border: '1.5px dashed #d1d1d6',
-    borderRadius: 20, minHeight: 220,
-    display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s',
-    gap: 4,
-  },
-  addIcon: {
-    width: 40, height: 40, borderRadius: '50%',
-    background: '#f5f5f7', border: '0.5px solid #e5e5ea',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 6,
-  },
-  emptyWrapper: {
-    background: '#fff', border: '0.5px solid #e5e5ea',
-    borderRadius: 28, padding: '64px 32px',
-    textAlign: 'center', display: 'flex',
-    flexDirection: 'column', alignItems: 'center',
-  },
-  emptyIcon: {
-    width: 72, height: 72, borderRadius: 20,
-    background: 'linear-gradient(135deg, #3b7dd8, #7c4fe0)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20,
-  },
-  overlay: {
-    position: 'fixed', inset: 0, zIndex: 200,
-    background: 'rgba(0,0,0,0.5)',
-    backdropFilter: 'blur(10px)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-  },
-  modal: {
-    background: '#fff', borderRadius: 24,
-    padding: '40px 40px 36px', width: '100%', maxWidth: 540,
-    maxHeight: '90vh', overflowY: 'auto', position: 'relative',
-  },
-  modalClose: {
-    position: 'absolute', top: 16, right: 16,
-    background: '#f2f2f7', border: 'none',
-    width: 32, height: 32, borderRadius: '50%',
-    cursor: 'pointer', display: 'flex',
-    alignItems: 'center', justifyContent: 'center',
-    transition: 'background 0.15s',
-  },
-  modalTitle: { fontSize: 22, fontWeight: 600, color: '#111', marginBottom: 4 },
-  modalSub: { fontSize: 14, color: '#888', marginBottom: 28 },
-  formGroup: { marginBottom: 18 },
-  label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#555', marginBottom: 6 },
-  input: {
-    width: '100%', padding: '11px 14px',
-    border: '0.5px solid #d1d1d6', borderRadius: 12,
-    fontSize: 14, background: '#fff', color: '#111',
-    outline: 'none', fontFamily: 'inherit',
-    transition: 'border-color 0.15s', boxSizing: 'border-box',
-  },
-  twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 },
-  uploadArea: {
-    display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center',
-    width: '100%', height: 110,
-    border: '1.5px dashed #d1d1d6', borderRadius: 12,
-    cursor: 'pointer', overflow: 'hidden',
-    gap: 2,
-  },
-  modalActions: { display: 'flex', gap: 10, marginTop: 24 },
-  btnCancel: {
-    flex: 1, padding: '12px', borderRadius: 12,
-    border: '0.5px solid #d1d1d6', background: '#f2f2f7',
-    color: '#333', fontSize: 14, fontWeight: 500,
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
-  btnSubmit: {
-    flex: 1, padding: '12px', borderRadius: 12,
-    border: 'none', background: '#111',
-    color: '#fff', fontSize: 14, fontWeight: 500,
-    cursor: 'pointer', transition: 'background 0.15s',
-  },
-};
