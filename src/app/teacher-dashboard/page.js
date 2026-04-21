@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Users, BookOpen, MessageCircle, Plus, ArrowUpRight, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TeacherDashboardHome() {
   const router = useRouter();
+  const { user, loading: authLoading, initializing } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
     activeCourses: 0,
@@ -18,8 +20,8 @@ export default function TeacherDashboardHome() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const user = auth.currentUser;
-        if (!user) return;
+        // Crucial: Do not render until Firebase auth check has finished
+        if (!user || authLoading || initializing) return;
 
         // Step 1: Fetch all courses taught by current teacher
         const coursesQuery = query(collection(db, 'courses'), where('teacherId', '==', user.uid));
@@ -61,7 +63,7 @@ export default function TeacherDashboardHome() {
     };
 
     fetchStats();
-  }, [router]);
+  }, [user, authLoading, initializing]);
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -69,10 +71,53 @@ export default function TeacherDashboardHome() {
     return today.toLocaleDateString('en-US', options);
   };
 
-  if (loading) {
+  // Crucial: Do not render the 'Go to Homepage' error message until the Firebase auth check has finished
+  if (loading || authLoading || initializing) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-zinc-500">Loading dashboard...</div>
+      <div className="min-h-screen bg-[#FBFBFD] p-8">
+        {/* Loading Skeleton - Apple-style minimalist design */}
+        <div className="max-w-7xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <div className="h-10 w-64 bg-zinc-200 rounded-2xl animate-pulse mb-3"></div>
+            <div className="h-5 w-48 bg-zinc-100 rounded-xl animate-pulse"></div>
+          </div>
+
+          {/* Stats Row Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
+                <div className="h-8 w-20 bg-zinc-200 rounded-2xl animate-pulse mb-2"></div>
+                <div className="h-4 w-24 bg-zinc-100 rounded-xl animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick Actions Skeleton */}
+          <div className="mb-8">
+            <div className="h-6 w-32 bg-zinc-200 rounded-xl animate-pulse mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="w-12 h-12 bg-zinc-200 rounded-2xl animate-pulse mb-4"></div>
+                      <div className="h-5 w-32 bg-zinc-200 rounded-xl animate-pulse mb-2"></div>
+                      <div className="h-4 w-48 bg-zinc-100 rounded-xl animate-pulse"></div>
+                    </div>
+                    <div className="w-5 h-5 bg-zinc-100 rounded-lg animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity Skeleton */}
+          <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
+            <div className="h-6 w-40 bg-zinc-200 rounded-xl animate-pulse mb-6"></div>
+            <div className="h-20 w-full bg-zinc-50 rounded-3xl animate-pulse"></div>
+          </div>
+        </div>
       </div>
     );
   }

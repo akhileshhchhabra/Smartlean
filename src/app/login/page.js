@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -10,9 +10,43 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading, initializing } = useAuth();
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [redirectPath, setRedirectPath] = useState('/');
+
+  // Dynamic button logic - detect where user was and offer to take them back
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      
+      // If user is on a teacher-related path, redirect to teacher dashboard
+      if (currentPath.includes('/teacher') || currentPath.includes('/courses')) {
+        setRedirectPath('/teacher-dashboard');
+      } 
+      // If user is on a student-related path, redirect to student dashboard
+      else if (currentPath.includes('/student')) {
+        setRedirectPath('/student-dashboard');
+      }
+      // Default to homepage
+      else {
+        setRedirectPath('/');
+      }
+    }
+  }, []);
+
+  // Auth-aware redirection - if user exists, redirect to appropriate dashboard
+  useEffect(() => {
+    if (user && !loading && !initializing) {
+      // If auth.currentUser exists, ensure the button primary action is to return to the specific dashboard
+      if (user.role === 'Teacher') {
+        setRedirectPath('/teacher-dashboard');
+      } else if (user.role === 'Student') {
+        setRedirectPath('/student-dashboard');
+      }
+    }
+  }, [user, loading, initializing]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -106,8 +140,16 @@ export default function LoginPage() {
     );
   }
 
-  // Show already logged in message
+  // Show already logged in message with dynamic button logic
   if (user) {
+    // Dynamic button text based on redirect path
+    const getButtonText = () => {
+      if (redirectPath === '/teacher-dashboard') return 'Back to Dashboard';
+      if (redirectPath === '/student-dashboard') return 'Back to Dashboard';
+      if (redirectPath.includes('/courses')) return 'Back to Courses';
+      return 'Go to Homepage';
+    };
+
     return (
       <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
         <div className="text-center">
@@ -125,10 +167,10 @@ export default function LoginPage() {
 
               <div className="mt-6">
                 <button
-                  onClick={() => router.push('/')}
-                  className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-full mt-4 hover:opacity-90 shadow-lg shadow-black/10"
+                  onClick={() => router.push(redirectPath)}
+                  className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-xl mt-4 hover:opacity-90 shadow-lg shadow-black/10 transition-all duration-200"
                 >
-                  Go to Homepage
+                  {getButtonText()}
                 </button>
               </div>
             </div>
@@ -173,7 +215,7 @@ export default function LoginPage() {
                 <Link href="#" className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">Forgot?</Link>
               </div>
               <input 
-                type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••"
+                type="password" name="password" value={formData.password} onChange={handleChange} placeholder="..."
                 className="w-full px-5 py-4 bg-[#F5F5F7] rounded-2xl text-[#1D1D1F] outline-none focus:ring-2 focus:ring-black/5 transition-all"
               />
             </div>
