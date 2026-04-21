@@ -124,92 +124,89 @@ export default function TeacherDashboardHome() {
 
   return (
     <div>
-      {/* Page Header */}
+      {/* Page Header with Serif Greeting */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-black font-['Syne'] tracking-tight mb-3">
+        <h1 className="text-4xl font-bold text-black font-serif tracking-tight mb-3">
           Welcome back! Instructor
         </h1>
-        <p className="text-zinc-500 text-lg">{getCurrentDate()}</p>
+        <p className="text-zinc-400 text-lg">{getCurrentDate()}</p>
       </div>
 
-      {/* Stats Row - 3 Apple-style Cards */}
+      {/* Stats Row - 3 Refined Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
+        <div className="bg-white p-6 rounded-[24px] shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="text-3xl font-bold text-black mb-1">{stats.totalStudents}</div>
+              <div className="text-zinc-400 text-sm">Total Students</div>
             </div>
-            <div className="text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-              Active
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-black font-['Syne'] mb-2">{stats.totalStudents}</div>
-          <div className="text-zinc-500 text-sm">Total Students</div>
         </div>
         
-        <div className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-green-600" />
+        <div className="bg-white p-6 rounded-[24px] shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="text-3xl font-bold text-black mb-1">{stats.activeCourses}</div>
+              <div className="text-zinc-400 text-sm">Active Courses</div>
             </div>
-            <div className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
-              Active
+            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-green-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-black font-['Syne'] mb-2">{stats.activeCourses}</div>
-          <div className="text-zinc-500 text-sm">Active Courses</div>
         </div>
         
-        <div className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-amber-600" />
+        <div className="bg-white p-6 rounded-[24px] shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="text-3xl font-bold text-black mb-1">{stats.newDoubts}</div>
+              <div className="text-zinc-400 text-sm">New Doubts</div>
             </div>
-            <div className="text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-              Pending
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-amber-600" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-black font-['Syne'] mb-2">{stats.newDoubts}</div>
-          <div className="text-zinc-500 text-sm">New Doubts</div>
         </div>
       </div>
 
       {/* Quick Actions Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-black font-['Syne'] tracking-tight mb-6">Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-black mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <button 
             onClick={() => router.push('/teacher-dashboard/courses-1')}
-            className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm text-left group hover:shadow-md transition-all duration-200"
+            className="bg-white p-6 rounded-[24px] shadow-sm text-left group hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors duration-200">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors duration-200">
                   <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-black font-['Syne'] tracking-tight mb-2">Create Course</h3>
-                <p className="text-zinc-500">Add a new course to your curriculum</p>
+                <h3 className="text-xl font-bold text-black mb-2">Create Course</h3>
+                <p className="text-zinc-400 text-sm">Add a new course to your curriculum</p>
               </div>
-              <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-zinc-100 transition-colors duration-200">
-                <ArrowUpRight className="w-5 h-5 text-zinc-400" />
+              <div className="w-8 h-8 bg-zinc-100 rounded-xl flex items-center justify-center group-hover:bg-zinc-200 transition-colors duration-200">
+                <ArrowUpRight className="w-4 h-4 text-zinc-600" />
               </div>
             </div>
           </button>
 
           <button 
             onClick={() => router.push('/teacher-dashboard/assignments')}
-            className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm text-left group hover:shadow-md transition-all duration-200"
+            className="bg-white p-6 rounded-[24px] shadow-sm text-left group hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors duration-200">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors duration-200">
                   <Plus className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-black font-['Syne'] tracking-tight mb-2">Post Assignment</h3>
-                <p className="text-zinc-500">Create and assign new tasks to students</p>
+                <h3 className="text-xl font-bold text-black mb-2">Post Assignment</h3>
+                <p className="text-zinc-400 text-sm">Create and assign new tasks to students</p>
               </div>
-              <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-zinc-100 transition-colors duration-200">
-                <ArrowUpRight className="w-5 h-5 text-zinc-400" />
+              <div className="w-8 h-8 bg-zinc-100 rounded-xl flex items-center justify-center group-hover:bg-zinc-200 transition-colors duration-200">
+                <ArrowUpRight className="w-4 h-4 text-zinc-600" />
               </div>
             </div>
           </button>
@@ -217,15 +214,15 @@ export default function TeacherDashboardHome() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white p-8 rounded-[24px] border border-zinc-200/50 shadow-sm">
-        <h2 className="text-2xl font-bold text-black font-['Syne'] tracking-tight mb-6">Recent Activity</h2>
+      <div className="bg-white p-6 rounded-[24px] shadow-sm">
+        <h2 className="text-2xl font-bold text-black mb-6">Recent Activity</h2>
         <div className="space-y-4">
           <div className="text-center py-12">
-            <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Clock className="w-6 h-6 text-zinc-400" />
             </div>
-            <p className="text-zinc-500 text-lg mb-2">No recent activity to display</p>
-            <p className="text-zinc-400 text-sm">Your recent actions will appear here</p>
+            <p className="text-zinc-400 text-lg mb-2">No recent activity to display</p>
+            <p className="text-zinc-500 text-sm">Your recent actions will appear here</p>
           </div>
         </div>
       </div>
