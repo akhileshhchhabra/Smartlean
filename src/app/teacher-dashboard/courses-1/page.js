@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users } from 'lucide-react';
+import { BookOpen, Plus, User, ArrowRight, Clock, X, Edit, Users, Settings } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import ActiveStudents from '@/components/ActiveStudents';
@@ -235,21 +235,21 @@ export default function TeacherCoursesPage() {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-8">
           {courses.map((course) => (
             <div 
               key={course.id} 
-              className="group bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm hover:shadow-lg hover:shadow-zinc-200/30 transition-all duration-300"
+              className="group bg-white rounded-3xl border border-zinc-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300"
             >
               {/* Course Thumbnail */}
               {course.thumbnailUrl ? (
                 <img 
                   src={course.thumbnailUrl} 
                   alt={course.title}
-                  className="w-full h-44 object-cover rounded-xl mb-6"
+                  className="w-full aspect-video object-cover rounded-2xl mb-6"
                 />
               ) : (
-                <div className="w-full h-44 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mb-6 flex items-center justify-center relative overflow-hidden">
+                <div className="w-full aspect-video bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
                   <BookOpen className="w-12 h-12 text-white/80" />
                 </div>
@@ -258,7 +258,7 @@ export default function TeacherCoursesPage() {
               {/* Course Content */}
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-[#1D1D1F] leading-tight group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-xl font-semibold text-[#1D1D1F] leading-tight group-hover:text-blue-600 transition-colors">
                     {course.title}
                   </h3>
                   <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold uppercase tracking-wider">
@@ -273,10 +273,9 @@ export default function TeacherCoursesPage() {
 
                 {/* Footer Info */}
                 <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                  <div className="flex items-center gap-4 text-xs text-zinc-400 font-medium">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Active
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs text-zinc-500 font-medium">Active</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button 
@@ -284,7 +283,7 @@ export default function TeacherCoursesPage() {
                         setSelectedCourse(course);
                         setShowStudents(true);
                       }}
-                      className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 px-4 py-2 rounded-lg transition-all border border-zinc-200"
+                      className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 px-4 py-2 rounded-lg transition-all border border-zinc-200"
                     >
                       <Users className="w-4 h-4" /> View Students
                     </button>
@@ -292,7 +291,7 @@ export default function TeacherCoursesPage() {
                       onClick={() => router.push(`/teacher-dashboard/courses-1`)}
                       className="flex items-center gap-2 text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 px-4 py-2 rounded-lg transition-all"
                     >
-                      <Edit className="w-4 h-4" /> Manage
+                      <Settings className="w-4 h-4" /> Manage
                     </button>
                   </div>
                 </div>
