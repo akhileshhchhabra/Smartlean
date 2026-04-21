@@ -9,11 +9,9 @@ import DashboardLayout from '@/components/Sidebar';
 export default function TeacherLayout({ children }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('none');
 
   useEffect(() => {
-    const checkVerification = async () => {
+    const checkAuth = async () => {
       try {
         const user = auth.currentUser;
         if (!user) {
@@ -21,7 +19,7 @@ export default function TeacherLayout({ children }) {
           return;
         }
 
-        // Check user document and verification status
+        // Check user document
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (!userDoc.exists()) {
           router.push('/login');
@@ -36,35 +34,18 @@ export default function TeacherLayout({ children }) {
           return;
         }
 
-        const verified = userData.isVerified || false;
-        const status = userData.verificationStatus || 'none';
-
-        setIsVerified(verified);
-        setVerificationStatus(status);
-
-        // Redirect based on verification status
-        if (!verified) {
-          if (status === 'none') {
-            router.push('/teacher-onboarding');
-            return;
-          } else if (status === 'pending') {
-            router.push('/teacher-verification-pending');
-            return;
-          } else if (status === 'denied') {
-            router.push('/teacher-denied');
-            return;
-          }
-        }
+        // Any authenticated teacher should have full access to /teacher/* routes
+        // No verification checks needed
 
       } catch (error) {
-        console.error('Error checking verification:', error);
+        console.error('Error checking auth:', error);
         router.push('/login');
       } finally {
         setLoading(false);
       }
     };
 
-    checkVerification();
+    checkAuth();
   }, [router]);
 
   if (loading) {
@@ -75,15 +56,6 @@ export default function TeacherLayout({ children }) {
     );
   }
 
-  // Only render dashboard layout if verified
-  if (isVerified && verificationStatus === 'approved') {
-    return <DashboardLayout userType="teacher">{children}</DashboardLayout>;
-  }
-
-  // This should not be reached due to redirects above, but as a fallback
-  return (
-    <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
-      <div className="text-zinc-500">Redirecting...</div>
-    </div>
-  );
+  // Render dashboard layout for any authenticated teacher with Apple-style transitions
+  return <DashboardLayout userType="teacher">{children}</DashboardLayout>;
 }
