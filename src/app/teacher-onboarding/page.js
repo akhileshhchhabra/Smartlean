@@ -112,62 +112,85 @@ export default function TeacherOnboarding() {
     setSubmitting(true);
     setError('');
     
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Submission timeout: Operation took longer than 10 seconds')), 10000);
+    });
+    
     try {
-      console.log('Starting verification submission...');
+      console.log('Starting upload...');
       const currentUser = auth.currentUser;
       
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
       
-      console.log('Uploading file to Firebase Storage...');
+      console.log('User authenticated:', currentUser.uid);
+      
       // Create a unique file name with user ID and timestamp
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
       const fileRef = ref(storage, `verification_docs/${fileName}`);
       
-      // Upload file to Firebase Storage
-      const uploadResult = await uploadBytes(fileRef, selectedFile);
-      console.log('File uploaded successfully:', uploadResult);
+      console.log('Uploading file to Storage:', fileName);
       
-      // Get download URL
-      const downloadURL = await getDownloadURL(fileRef);
+      // Upload file to Firebase Storage with timeout
+      const uploadResult = await Promise.race([
+        uploadBytes(fileRef, selectedFile),
+        timeoutPromise
+      ]);
+      
+      console.log('File uploaded to Storage...');
+      console.log('Upload result:', uploadResult);
+      
+      // Get download URL with timeout
+      const downloadURL = await Promise.race([
+        getDownloadURL(fileRef),
+        timeoutPromise
+      ]);
+      
       console.log('Download URL obtained:', downloadURL);
       
-      console.log('Updating Firestore user document...');
-      // Update user document in Firestore
+      console.log('Updating Firestore...');
+      
+      // Update user document in Firestore with timeout
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        fullName: formData.fullName,
-        expertise: formData.expertise,
-        bio: formData.bio,
-        documentUrl: downloadURL,
-        documentFileName: fileName, // Store file name for reference
-        verificationStatus: 'pending',
-        isVerified: false,
-        submittedAt: serverTimestamp()
-      });
+      await Promise.race([
+        updateDoc(userRef, {
+          fullName: formData.fullName,
+          expertise: formData.expertise,
+          bio: formData.bio,
+          documentUrl: downloadURL,
+          documentFileName: fileName, // Store file name for reference
+          verificationStatus: 'pending',
+          isVerified: false,
+          submittedAt: serverTimestamp()
+        }),
+        timeoutPromise
+      ]);
       
-      console.log('Firestore document updated successfully');
+      console.log('Redirecting...');
       
-      // Set success state
+      // Set success state immediately after successful update
       setSuccess(true);
       
     } catch (error) {
-      console.error('Detailed error submitting verification:', error);
+      console.error('Submission failed:', error);
       console.error('Error code:', error.code);
       console.error('Error message:', error.message);
       
       // Provide more specific error messages
       let errorMessage = 'Failed to submit verification. Please try again.';
       
-      if (error.code === 'storage/unauthorized') {
-        errorMessage = 'Permission denied. Please check your storage permissions.';
+      if (error.message === 'Submission timeout: Operation took longer than 10 seconds') {
+        errorMessage = 'Submission timeout. Please check your internet connection and try again.';
+      } else if (error.code === 'storage/unauthorized') {
+        errorMessage = 'Storage permission denied. Please contact support.';
       } else if (error.code === 'storage/canceled') {
         errorMessage = 'Upload was cancelled. Please try again.';
       } else if (error.code === 'storage/unknown') {
-        errorMessage = 'An unknown error occurred during upload.';
+        errorMessage = 'Storage error occurred. Please try again.';
       } else if (error.code === 'firestore/permission-denied') {
-        errorMessage = 'Permission denied. Please check your database permissions.';
+        errorMessage = 'Database permission denied. Please contact support.';
       } else if (error.code === 'firestore/not-found') {
         errorMessage = 'User document not found. Please contact support.';
       } else if (error.message) {
@@ -176,7 +199,9 @@ export default function TeacherOnboarding() {
       
       setError(errorMessage);
     } finally {
+      // Always reset submitting state
       setSubmitting(false);
+      console.log('Submission process completed');
     }
   };
 

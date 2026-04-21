@@ -1,35 +1,75 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Verification documents folder - Users can only upload/read their own files
+    // ============================================
+    // VERIFICATION DOCUMENTS - TEACHER ONBOARDING
+    // ============================================
+    // This is the most important rule for teacher verification
+    // Teachers can upload/read/delete their own verification documents
     match /verification_docs/{userId}/{allPaths=**} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Course thumbnails folder - Teachers can upload/read their own course thumbnails
+    // ============================================
+    // COURSE THUMBNAILS - TEACHER COURSE MANAGEMENT
+    // ============================================
+    // Teachers can manage their own course thumbnails
+    // Everyone can read course thumbnails (for course listings)
     match /course_thumbnails/{teacherId}/{allPaths=**} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == teacherId;
       allow delete: if request.auth != null && request.auth.uid == teacherId;
     }
     
-    // Profile images folder - Users can upload/read their own profile images
+    // ============================================
+    // PROFILE IMAGES - USER AVATARS
+    // ============================================
+    // Users can manage their own profile images
+    // Everyone can read profile images (for user listings)
     match /profile_images/{userId}/{allPaths=**} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
-    // General uploads folder with user-specific access
+    // ============================================
+    // ASSIGNMENT FILES - TEACHER ASSIGNMENT MANAGEMENT
+    // ============================================
+    // Teachers can upload assignment files
+    // Students can read assignment files for their courses
+    match /assignment_files/{teacherId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == teacherId;
+      allow delete: if request.auth != null && request.auth.uid == teacherId;
+    }
+    
+    // ============================================
+    // STUDENT SUBMISSIONS - ASSIGNMENT SUBMISSIONS
+    // ============================================
+    // Students can submit their work
+    // Teachers can read student submissions for their courses
+    match /student_submissions/{courseId}/{studentId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == studentId;
+      allow delete: if request.auth != null && request.auth.uid == studentId;
+    }
+    
+    // ============================================
+    // GENERAL UPLOADS - FALLBACK FOLDER
+    // ============================================
+    // Users can manage their own general uploads
     match /uploads/{userId}/{allPaths=**} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Deny access to any other paths
+    // ============================================
+    // SECURITY: DENY ALL OTHER ACCESS
+    // ============================================
+    // This prevents unauthorized access to any other paths
     match /{allPaths=**} {
       allow read, write: if false;
     }
