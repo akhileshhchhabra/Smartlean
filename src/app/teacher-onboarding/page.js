@@ -59,9 +59,14 @@ export default function TeacherOnboarding() {
     setSubmitting(true);
 
     try {
-      // Validation
+      // File Validation: Check if (file.size > 800000) (800KB)
       if (!selectedFile) {
         alert('Please upload a document first.');
+        return;
+      }
+
+      if (selectedFile.size > 800000) {
+        alert('File too large for Firestore (Max 800KB)');
         return;
       }
 
@@ -76,7 +81,13 @@ export default function TeacherOnboarding() {
         return;
       }
 
-      // Save Base64 string into user's Firestore document under field documentBase64
+      // Base64 Conversion: Ensure FileReader is working correctly and string is stored in a field called documentBase64
+      if (!documentBase64) {
+        alert('File conversion failed. Please try again.');
+        return;
+      }
+
+      // Database Update: Use updateDoc(doc(db, 'users', user.uid), { ... })
       console.log('Saving Base64 document to Firestore...');
       
       const userRef = doc(db, 'users', currentUser.uid);
@@ -99,8 +110,9 @@ export default function TeacherOnboarding() {
       setStep('success');
 
     } catch (error) {
+      // Error Alert: In the catch block, use alert('Error Code: ' + error.code + '\nMessage: ' + error.message). This is CRUCIAL to see the exact Firebase error.
+      alert('Error Code: ' + error.code + '\nMessage: ' + error.message);
       console.error('FIREBASE_ERROR:', error.code, error.message);
-      alert(error.message || 'Registration failed');
       setError(error.message || 'Registration failed');
     } finally {
       // Safety: Ensure setSubmitting(false) is always called
