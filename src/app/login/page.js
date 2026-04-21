@@ -6,24 +6,11 @@ import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-
-function friendlyAuthError(err) {
-  const code = err?.code || '';
-  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
-    return 'Invalid email or password. Please check your credentials and try again.';
-  }
-  if (code === 'auth/user-not-found') return 'No account found for this email address.';
-  if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
-  if (code === 'auth/user-disabled') return 'This account has been disabled. Please contact support.';
-  if (code === 'auth/too-many-requests') {
-    return 'Too many attempts. Please wait a moment and try again.';
-  }
-  return 'Login failed. Please try again.';
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { user, loading, initializing } = useAuth();
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
 
@@ -42,46 +29,85 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      console.log('Login successful for user:', userCredential.user.email);
       
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-
-        // 1. Check for Teacher
-        if (userData.role === 'Teacher') {
-          // Fix Login/Dashboard Logic: Update login so that any user with teacher role is directed straight to dashboard immediately after login
-          router.push('/teacher-dashboard');
-          return;
-        }
-
-        // 2. Check for Student Subscription
-        if (userData.role === 'Student') {
-          if (userData.hasSelectedPlan === true) {
-            router.push('/student-dashboard');
-          } else {
-            // Agar hasSelectedPlan false hai ya nahi hai
-            router.push('/subscribe');
-          }
-        } else {
-          router.push('/student-dashboard');
-        }
-      } else {
-        // Fallback agar doc nahi hai
-        router.push('/subscribe');
-      }
+      // Auth Context will handle the redirect automatically based on user data
+      setError('');
     } catch (err) {
       console.error('Auth login error:', err);
       setError(friendlyAuthError(err));
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Show loading screen while initializing auth
+  if (initializing) {
+    return (
+      <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-zinc-900 to-zinc-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-2xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em]">
+            SmartLearn
+          </h2>
+          <p className="text-zinc-600 mt-2">Initializing authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading screen while checking auth state
+  if (loading) {
+    return (
+      <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-zinc-900 to-zinc-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-2xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em]">
+            SmartLearn
+          </h2>
+          <p className="text-zinc-600 mt-2">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show already logged in message
+  if (user) {
+    return (
+      <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="text-center">
+          <div className="w-full max-w-md">
+            <div className="soft-card p-12 rounded-[2.5rem] bg-white border border-zinc-100 shadow-sm">
+              <div className="text-center mb-12">
+                <span className="inline-block px-6 py-3 soft-card rounded-full text-xs font-medium text-zinc-500 uppercase tracking-widest mb-8 border border-zinc-50 bg-[#F5F5F7]">
+                  Already Logged In
+                </span>
+                <h2 className="text-4xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em]">
+                  Welcome Back!
+                </h2>
+                <p className="text-zinc-600">You are already logged in as {user.email}</p>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-full mt-4 hover:opacity-90 shadow-lg shadow-black/10"
+                >
+                  Go to Homepage
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form for non-logged in users
   return (
     <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
       <div className="w-full max-w-md">
@@ -116,16 +142,16 @@ export default function LoginPage() {
                 <Link href="#" className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">Forgot?</Link>
               </div>
               <input 
-                type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••"
+                type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••"
                 className="w-full px-5 py-4 bg-[#F5F5F7] rounded-2xl text-[#1D1D1F] outline-none focus:ring-2 focus:ring-black/5 transition-all"
               />
             </div>
 
             <button 
-              type="submit" disabled={loading}
-              className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-full mt-4 disabled:opacity-50 transition-all hover:opacity-90 shadow-lg shadow-black/10"
+              type="submit" 
+              className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-full mt-4 hover:opacity-90 shadow-lg shadow-black/10"
             >
-              {loading ? 'Processing...' : 'Sign In'}
+              Sign In
             </button>
           </form>
 
@@ -139,4 +165,18 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+function friendlyAuthError(err) {
+  const code = err?.code || '';
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+    return 'Invalid email or password. Please check your credentials and try again.';
+  }
+  if (code === 'auth/user-not-found') return 'No account found for this email address.';
+  if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
+  if (code === 'auth/user-disabled') return 'This account has been disabled. Please contact support.';
+  if (code === 'auth/too-many-requests') {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  return 'Login failed. Please try again.';
 }
