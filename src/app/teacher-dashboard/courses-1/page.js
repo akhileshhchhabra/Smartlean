@@ -239,58 +239,58 @@ export default function TeacherCoursesPage() {
           {courses.map((course) => (
             <div 
               key={course.id} 
-              className="group bg-white rounded-[4rem] border border-zinc-100 p-5 shadow-sm hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-300"
+              className="group bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm hover:shadow-lg hover:shadow-zinc-200/30 transition-all duration-300"
             >
               {/* Course Thumbnail */}
               {course.thumbnailUrl ? (
                 <img 
                   src={course.thumbnailUrl} 
                   alt={course.title}
-                  className="w-full h-40 object-cover rounded-2xl mb-5"
+                  className="w-full h-44 object-cover rounded-xl mb-6"
                 />
               ) : (
-                <div className="w-full h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-5 flex items-center justify-center relative overflow-hidden">
+                <div className="w-full h-44 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mb-6 flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
                   <BookOpen className="w-12 h-12 text-white/80" />
                 </div>
               )}
 
               {/* Course Content */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-[#1D1D1F] leading-snug group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-xl font-bold text-[#1D1D1F] leading-tight group-hover:text-blue-600 transition-colors">
                     {course.title}
                   </h3>
-                  <div className="px-3 py-1 bg-zinc-100 rounded-full text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold uppercase tracking-wider">
                     {course.category}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-zinc-400 font-bold">
+                <div className="flex items-center gap-2 text-sm text-zinc-500">
                   <User className="w-4 h-4" />
                   {course.studentCount || 0} Students
                 </div>
 
                 {/* Footer Info */}
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-50">
+                <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
                   <div className="flex items-center gap-4 text-xs text-zinc-400 font-medium">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" /> Active
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button 
                       onClick={() => {
                         setSelectedCourse(course);
                         setShowStudents(true);
                       }}
-                      className="flex items-center gap-1 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-all"
+                      className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 px-4 py-2 rounded-lg transition-all border border-zinc-200"
                     >
                       <Users className="w-4 h-4" /> View Students
                     </button>
                     <button 
                       onClick={() => router.push(`/teacher-dashboard/courses-1`)}
-                      className="flex items-center gap-1 text-sm font-semibold text-white bg-[#1D1D1F] hover:bg-zinc-800 px-3 py-2 rounded-xl transition-all"
+                      className="flex items-center gap-2 text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 px-4 py-2 rounded-lg transition-all"
                     >
                       <Edit className="w-4 h-4" /> Manage
                     </button>
