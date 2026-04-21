@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Play, Plus } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion, onSnapshot, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
 import ChallengeInbox from '@/components/ChallengeInbox';
 
 export default function StudentDashboardHome() {
@@ -204,6 +204,25 @@ export default function StudentDashboardHome() {
     }
   };
 
+  const handleTaskSubmit = async (taskId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const assignmentRef = doc(db, 'assignments', taskId);
+      await updateDoc(assignmentRef, {
+        submittedBy: arrayUnion(user.uid),
+        submittedAt: serverTimestamp()
+      });
+
+      // Update local state to remove the submitted task
+      setPendingTasks(prev => prev.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error('Error submitting assignment:', error);
+      alert('Failed to submit assignment. Please try again.');
+    }
+  };
+
   const handleDoubtSubmit = () => {
     if (doubtQuestion.trim()) {
       alert('Doubt submitted successfully!');
@@ -351,7 +370,7 @@ export default function StudentDashboardHome() {
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {pendingTasks.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-zinc-500 text-lg font-serif tracking-tight">All caught up! 🌟</p>
+                  <p className="text-zinc-500 text-lg font-serif tracking-tight">You're all caught up! �</p>
                 </div>
               ) : (
                 pendingTasks.slice(0, 5).map((task, index) => (
@@ -360,7 +379,8 @@ export default function StudentDashboardHome() {
                       <input 
                         type="checkbox" 
                         className="w-4 h-4 text-blue-600 bg-white border-zinc-300 rounded focus:ring-blue-500 focus:ring-2"
-                        readOnly
+                        onChange={() => handleTaskSubmit(task.id)}
+                        checked={false}
                       />
                       <span className="text-black font-medium">{task.title}</span>
                     </div>
