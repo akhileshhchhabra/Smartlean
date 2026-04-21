@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, FileText, User, Mail, Calendar, AlertCircle, Shield } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function AdminVerification() {
   const router = useRouter();
@@ -31,31 +31,43 @@ export default function AdminVerification() {
       }
 
       setIsAdmin(true);
-      await fetchPendingTeachers();
+      setupRealtimeListener();
     };
 
     checkAdminAndFetch();
   }, [router]);
 
-  const fetchPendingTeachers = async () => {
+  const setupRealtimeListener = () => {
     try {
+      console.log('🔍 Setting up real-time listener for pending teachers...');
+      
+      // Real-time listener for pending teachers
       const q = query(
         collection(db, 'users'),
-        where('role', '==', 'Teacher'),
+        where('role', '==', 'teacher'),
         where('verificationStatus', '==', 'pending')
       );
-      const snapshot = await getDocs(q);
-      
-      const teachers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setPendingTeachers(teachers);
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const teachers = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        console.log(`📊 Real-time update: ${teachers.length} pending teachers`);
+        setPendingTeachers(teachers);
+        setError('');
+        setLoading(false);
+      }, (error) => {
+        console.error('❌ Real-time listener error:', error);
+        setError('Failed to load real-time data. Please refresh.');
+        setLoading(false);
+      });
+
+      return unsubscribe;
     } catch (error) {
-      console.error('Error fetching pending teachers:', error);
-      setError('Failed to load pending verifications.');
-    } finally {
+      console.error('❌ Setup error:', error);
+      setError('Failed to setup admin dashboard.');
       setLoading(false);
     }
   };
@@ -65,17 +77,21 @@ export default function AdminVerification() {
     setError('');
 
     try {
+      console.log(`✅ Approving teacher: ${teacherId}`);
+      
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
         isVerified: true,
         verificationStatus: 'approved',
-        verifiedAt: new Date().toISOString()
+        approvedAt: serverTimestamp(),
+        reviewedBy: auth.currentUser?.email || 'admin'
       });
-
-      // Remove from pending list
-      setPendingTeachers(prev => prev.filter(teacher => teacher.id !== teacherId));
+      
+      console.log(`✅ Teacher ${teacherId} approved successfully`);
+      
     } catch (error) {
-      console.error('Error approving teacher:', error);
+      console.error('❌ Error approving teacher:', error);
+      alert(`Failed to approve teacher: ${error.message}`);
       setError('Failed to approve teacher. Please try again.');
     } finally {
       setProcessing(prev => ({ ...prev, [teacherId]: null }));
@@ -87,17 +103,21 @@ export default function AdminVerification() {
     setError('');
 
     try {
+      console.log(`❌ Rejecting teacher: ${teacherId}`);
+      
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
         isVerified: false,
         verificationStatus: 'denied',
-        rejectedAt: new Date().toISOString()
+        deniedAt: serverTimestamp(),
+        reviewedBy: auth.currentUser?.email || 'admin'
       });
-
-      // Remove from pending list
-      setPendingTeachers(prev => prev.filter(teacher => teacher.id !== teacherId));
+      
+      console.log(`❌ Teacher ${teacherId} rejected successfully`);
+      
     } catch (error) {
-      console.error('Error rejecting teacher:', error);
+      console.error('❌ Error rejecting teacher:', error);
+      alert(`Failed to reject teacher: ${error.message}`);
       setError('Failed to reject teacher. Please try again.');
     } finally {
       setProcessing(prev => ({ ...prev, [teacherId]: null }));

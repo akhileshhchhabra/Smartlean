@@ -140,16 +140,12 @@ export default function TeacherOnboarding() {
       console.log('📂 File type:', selectedFile.type);
       
       // Create storage reference with proper path
-      const storageRef = ref(storage, `verification_docs/${fileName}`);
-      console.log('🗂️ Storage ref created:', `verification_docs/${fileName}`);
+      const storageRef = ref(storage, `verification_docs/${currentUser.uid}/${fileName}`);
+      console.log('🗂️ Storage ref created:', `verification_docs/${currentUser.uid}/${fileName}`);
       
-      // Convert file to Blob for upload (more reliable than File object)
-      const fileBlob = new Blob([selectedFile], { type: selectedFile.type });
-      console.log('📦 Blob created:', `${fileBlob.size} bytes`);
-      
-      // Upload file to Firebase Storage using resumable upload (better for slow networks)
+      // Upload file to Firebase Storage using resumable upload
       console.log('⬆️ Starting resumable upload...');
-      const uploadTask = uploadBytesResumable(storageRef, fileBlob);
+      const uploadTask = uploadBytesResumable(storageRef, selectedFile);
       
       // Wait for upload to complete with progress tracking
       const uploadSnapshot = await new Promise((resolve, reject) => {
