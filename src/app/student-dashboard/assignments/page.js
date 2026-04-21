@@ -144,17 +144,17 @@ export default function StudentAssignmentsPage() {
   }
 
   return (
-    <div className="bg-[#F5F5F7] min-h-screen p-8 lg:p-16">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="bg-zinc-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-8 py-12">
 
-        {/* Header */}
-        <div>
-          <h1 className="text-4xl font-bold text-[#1D1D1F] tracking-tight">My Assignments</h1>
-          <p className="text-zinc-500 mt-1 text-base">Complete and submit your course assignments.</p>
+        {/* Clean Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-zinc-900 tracking-tight mb-2">My Assignments</h1>
+          <p className="text-zinc-500 text-lg">Track your progress and submit coursework</p>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Responsive Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {assignments.map((assignment) => {
             const submissionStatus = getSubmissionStatus(assignment.id);
             const cardState = getCardState(submissionStatus);
@@ -168,145 +168,139 @@ export default function StudentAssignmentsPage() {
             return (
               <div
                 key={assignment.id}
-                className={`
-                  relative bg-white rounded-3xl border overflow-hidden
-                  transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5
-                  ${cardState === 'reviewed'
-                    ? isHighScore ? 'border-green-200 shadow-green-100/60 shadow-md' : 'border-amber-200 shadow-amber-100/60 shadow-md'
-                    : cardState === 'submitted'
-                    ? 'border-blue-200 shadow-blue-100/50 shadow-sm'
-                    : 'border-zinc-100 shadow-sm'
-                  }
-                `}
+                className="
+                  relative bg-white border border-zinc-100 rounded-[2rem] overflow-hidden
+                  transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
+                "
               >
-                {/* Top color accent strip */}
-                <div className={`h-1 w-full ${
-                  cardState === 'reviewed'
-                    ? isHighScore ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-amber-400 to-orange-400'
-                    : cardState === 'submitted'
-                    ? 'bg-gradient-to-r from-blue-400 to-indigo-500'
-                    : 'bg-gradient-to-r from-zinc-200 to-zinc-300'
-                }`} />
+                <div className="p-8 space-y-6">
 
-                <div className="p-6 space-y-4">
-
-                  {/* Title row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-bold text-[#1D1D1F] leading-snug capitalize">{assignment.title}</h3>
-                    <div className={`shrink-0 p-2 rounded-xl ${
-                      cardState === 'reviewed'
-                        ? isHighScore ? 'bg-green-50' : 'bg-amber-50'
-                        : cardState === 'submitted' ? 'bg-blue-50' : 'bg-zinc-50'
-                    }`}>
-                      <FileText className={`w-5 h-5 ${
-                        cardState === 'reviewed'
-                          ? isHighScore ? 'text-green-500' : 'text-amber-500'
-                          : cardState === 'submitted' ? 'text-blue-500' : 'text-zinc-400'
-                      }`} />
-                    </div>
-                  </div>
-
-                  {/* Due date */}
-                  <div className="flex items-center gap-2 text-sm text-zinc-400 font-medium">
-                    <Calendar className="w-4 h-4" />
-                    Due: {formatDate(assignment.dueDate)}
-                  </div>
-
-                  {/* ── STATE: NOT SUBMITTED ── */}
-                  {cardState === 'pending' && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-xl border border-zinc-100">
-                      <div className="w-2 h-2 bg-zinc-400 rounded-full" />
-                      <span className="text-sm font-medium text-zinc-500">Not submitted yet</span>
-                    </div>
-                  )}
-
-                  {/* ── STATE: SUBMITTED (awaiting review) ── */}
-                  {cardState === 'submitted' && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-medium text-blue-700">Submitted · Awaiting review</span>
-                      </div>
-                      <p className="text-xs text-zinc-400 pl-1">Your teacher will review your answers soon.</p>
-                    </div>
-                  )}
-
-                  {/* ── STATE: REVIEWED ── */}
-                  {cardState === 'reviewed' && (
-                    <div className="space-y-3">
-                      {/* Score pill */}
-                      <div className={`flex items-center justify-between px-4 py-3 rounded-xl border ${
-                        isHighScore ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
-                      }`}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                            isHighScore ? 'bg-green-500' : 'bg-amber-500'
-                          }`}>
-                            {isHighScore
-                              ? <Star className="w-4 h-4 text-white fill-white" />
-                              : <Check className="w-4 h-4 text-white" />
-                            }
-                          </div>
-                          <span className={`text-sm font-semibold ${isHighScore ? 'text-green-700' : 'text-amber-700'}`}>
-                            {isHighScore ? 'Great work!' : 'Reviewed'}
-                          </span>
+                  {/* Header Section - Course Name & Icon */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-2xl flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-blue-600" />
                         </div>
-                        <span className={`text-xl font-bold tabular-nums ${isHighScore ? 'text-green-600' : 'text-amber-600'}`}>
-                          {submissionStatus.marks}
-                          <span className="text-sm font-medium opacity-60">/{submissionStatus.maxMarks}</span>
-                        </span>
+                        <div>
+                          <h3 className="text-xl font-bold text-blue-600 capitalize">{assignment.courseName || 'Course'}</h3>
+                          <p className="text-zinc-900 font-semibold text-lg mt-1">{assignment.title}</p>
+                        </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Score bar */}
-                      <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${isHighScore ? 'bg-green-400' : 'bg-amber-400'}`}
-                          style={{ width: `${scorePercent}%` }}
-                        />
+                  {/* Due Date Badge */}
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-100 rounded-2xl">
+                    <Calendar className="w-4 h-4 text-zinc-600" />
+                    <span className="text-zinc-600 font-medium">{formatDate(assignment.dueDate)}</span>
+                  </div>
+
+                  {/* Status & Scoring Section */}
+                  <div className="space-y-4">
+                    {/* Single Elegant Status Badge */}
+                    <div className={`inline-flex items-center gap-3 px-5 py-3 rounded-2xl font-medium ${
+                      cardState === 'reviewed'
+                        ? isHighScore ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : cardState === 'submitted' ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-zinc-100 text-zinc-600 border border-zinc-200'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        cardState === 'reviewed'
+                          ? isHighScore ? 'bg-green-500' : 'bg-amber-500'
+                          : cardState === 'submitted' ? 'bg-blue-500' : 'bg-zinc-400'
+                      }`} />
+                      {cardState === 'reviewed'
+                        ? isHighScore ? 'Excellent' : 'Reviewed'
+                        : cardState === 'submitted' ? 'Submitted' : 'Pending'
+                      }
+                    </div>
+
+                    {/* Grade Circle - Prominent Score Display */}
+                    {cardState === 'reviewed' && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 ${
+                            isHighScore ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+                          }`}>
+                            <span className={`text-2xl font-bold ${isHighScore ? 'text-green-700' : 'text-amber-700'}`}>
+                              {submissionStatus.marks}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm text-zinc-500">Score</p>
+                            <p className="text-lg font-semibold text-zinc-900">
+                              {submissionStatus.marks}/{submissionStatus.maxMarks}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                            isHighScore ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {isHighScore ? <Star className="w-4 h-4 fill-current" /> : <Check className="w-4 h-4" />}
+                            {Math.round(scorePercent)}%
+                          </div>
+                        </div>
                       </div>
+                    )}
+                  </div>
 
-                      {/* Expandable feedback */}
-                      {(submissionStatus.feedback || submissionStatus.improvementFeedback) && (
-                        <div className="rounded-xl border border-zinc-100 overflow-hidden">
+                  {/* Teacher's Feedback Section - Glassmorphism Panel */}
+                  {cardState === 'reviewed' && (submissionStatus.feedback || submissionStatus.improvementFeedback) && (
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-purple-50/50 backdrop-blur-xl rounded-2xl border border-white/20"></div>
+                      <div className="relative p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-zinc-600" />
+                            <span className="font-semibold text-zinc-800">Teacher Feedback</span>
+                          </div>
                           <button
                             onClick={() => toggleFeedback(assignment.id)}
-                            className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
+                            className="p-2 hover:bg-white/50 rounded-xl transition-all"
                           >
-                            <div className="flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4 text-zinc-500" />
-                              <span className="text-sm font-semibold text-zinc-700">Teacher Feedback</span>
-                            </div>
                             {isFeedbackOpen
-                              ? <ChevronUp className="w-4 h-4 text-zinc-400" />
-                              : <ChevronDown className="w-4 h-4 text-zinc-400" />
+                              ? <ChevronUp className="w-4 h-4 text-zinc-600" />
+                              : <ChevronDown className="w-4 h-4 text-zinc-600" />
                             }
                           </button>
-
-                          {isFeedbackOpen && (
-                            <div className="px-4 pb-4 pt-3 space-y-3 bg-white">
-                              {submissionStatus.feedback && (
-                                <div>
-                                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">Comments</p>
-                                  <p className="text-sm text-zinc-600 leading-relaxed">{submissionStatus.feedback}</p>
-                                </div>
-                              )}
-                              {submissionStatus.improvementFeedback && (
-                                <div className="pt-2 border-t border-zinc-50">
-                                  <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">Areas to Improve</p>
-                                  <p className="text-sm text-zinc-600 leading-relaxed">{submissionStatus.improvementFeedback}</p>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
-                      )}
+
+                        {isFeedbackOpen && (
+                          <div className="space-y-4">
+                            {submissionStatus.feedback && (
+                              <div className="relative">
+                                <div className="absolute -left-2 top-0 text-3xl text-zinc-300">"</div>
+                                <p className="text-zinc-700 leading-relaxed pl-4 italic">
+                                  {submissionStatus.feedback}
+                                </p>
+                                <div className="absolute -right-2 bottom-0 text-3xl text-zinc-300 rotate-180">"</div>
+                              </div>
+                            )}
+                            
+                            {submissionStatus.improvementFeedback && (
+                              <div className="pt-4 border-t border-zinc-200/50">
+                                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Areas to Improve</p>
+                                <p className="text-zinc-600 text-sm leading-relaxed">
+                                  {submissionStatus.improvementFeedback}
+                                </p>
+                              </div>
+                            )}
+
+                            <button className="w-full py-2 text-zinc-600 font-medium hover:text-zinc-900 transition-colors text-sm">
+                              View Full Feedback →
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-zinc-50">
-                    <span className="flex items-center gap-1 text-xs text-zinc-400 font-medium">
-                      <Clock className="w-3 h-3" />
+                  {/* Footer Actions */}
+                  <div className="flex items-center justify-between pt-6 border-t border-zinc-100">
+                    <span className="flex items-center gap-2 text-sm text-zinc-500">
+                      <Clock className="w-4 h-4" />
                       {assignment.status || 'active'}
                     </span>
 
@@ -319,23 +313,23 @@ export default function StudentAssignmentsPage() {
                           setAnswers(init);
                           setSubmitModal(true);
                         }}
-                        className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[#1D1D1F] hover:bg-zinc-700 px-4 py-2 rounded-xl transition-all"
+                        className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white font-medium rounded-2xl hover:bg-zinc-800 transition-all hover:scale-105"
                       >
                         <Plus className="w-4 h-4" /> Submit
                       </button>
                     )}
 
                     {cardState === 'submitted' && (
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl">
-                        <Send className="w-3 h-3" /> Submitted
+                      <span className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-medium rounded-2xl">
+                        <Send className="w-4 h-4" /> Submitted
                       </span>
                     )}
 
                     {cardState === 'reviewed' && (
-                      <span className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl ${
-                        isHighScore ? 'text-green-700 bg-green-50' : 'text-amber-700 bg-amber-50'
+                      <span className={`flex items-center gap-2 px-4 py-2 font-medium rounded-2xl ${
+                        isHighScore ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                       }`}>
-                        <Check className="w-3 h-3" /> Reviewed
+                        <Check className="w-4 h-4" /> Reviewed
                       </span>
                     )}
                   </div>
@@ -345,16 +339,16 @@ export default function StudentAssignmentsPage() {
           })}
         </div>
 
-        {/* Empty state */}
+        {/* Empty State */}
         {assignments.length === 0 && (
-          <div className="bg-white rounded-3xl border border-zinc-100 p-16 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <FileText className="w-10 h-10 text-white" />
+          <div className="bg-white border border-zinc-100 rounded-[2rem] p-20 text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-lg">
+              <FileText className="w-12 h-12 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-[#1D1D1F] mb-3">
+            <h3 className="text-3xl font-bold text-zinc-900 mb-4">
               {!hasEnrollments ? "No courses enrolled yet" : "No assignments found"}
             </h3>
-            <p className="text-zinc-500">
+            <p className="text-zinc-500 text-lg max-w-md mx-auto">
               {!hasEnrollments
                 ? "Enroll in a course to see your assignments here."
                 : "No assignments found for your enrolled courses."}
@@ -366,51 +360,51 @@ export default function StudentAssignmentsPage() {
         {submitModal && selectedAssignment && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSubmitModal(false)} />
-            <div className="relative z-[101] bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
-              {/* Modal header */}
-              <div className="flex items-center justify-between px-8 pt-8 pb-4">
+            <div className="relative z-[101] bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-12 pt-12 pb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-[#1D1D1F]">Submit Assignment</h2>
-                  <p className="text-sm text-zinc-400 mt-0.5 capitalize">{selectedAssignment.title}</p>
+                  <h2 className="text-3xl font-bold text-zinc-900 mb-2">Submit Assignment</h2>
+                  <p className="text-zinc-500 text-lg capitalize">{selectedAssignment.title}</p>
                 </div>
-                <button onClick={() => setSubmitModal(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-all">
-                  <X className="w-5 h-5 text-zinc-400" />
+                <button onClick={() => setSubmitModal(false)} className="p-3 hover:bg-zinc-100 rounded-2xl transition-all">
+                  <X className="w-6 h-6 text-zinc-400" />
                 </button>
               </div>
 
               {/* Questions */}
-              <div className="px-8 pb-4 space-y-6 max-h-[50vh] overflow-y-auto">
+              <div className="px-12 pb-8 space-y-8 max-h-[60vh] overflow-y-auto">
                 {selectedAssignment.questions?.map((question, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-start gap-3">
-                      <span className="shrink-0 w-6 h-6 bg-[#1D1D1F] text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">
+                  <div key={index} className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <span className="shrink-0 w-8 h-8 bg-zinc-900 text-white text-sm font-bold rounded-2xl flex items-center justify-center">
                         {index + 1}
                       </span>
-                      <p className="text-sm font-medium text-zinc-700 leading-relaxed">{question.q}</p>
+                      <p className="text-base font-medium text-zinc-800 leading-relaxed flex-1">{question.q}</p>
                     </div>
                     <textarea
                       value={answers[index] || ''}
                       onChange={(e) => handleAnswerChange(index, e.target.value)}
-                      className="w-full ml-9 p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-none h-24 transition-all"
-                      placeholder={`Your answer for Q${index + 1}…`}
+                      className="w-full ml-12 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-base focus:outline-none focus:ring-2 focus:ring-zinc-900/10 resize-none h-32 transition-all placeholder-zinc-400"
+                      placeholder={`Your answer for Question ${index + 1}…`}
                     />
                   </div>
                 ))}
               </div>
 
-              {/* Modal footer */}
-              <div className="flex gap-3 px-8 py-6 border-t border-zinc-100 bg-zinc-50/50">
+              {/* Modal Footer */}
+              <div className="flex gap-4 px-12 py-8 border-t border-zinc-100 bg-zinc-50/50">
                 <button
                   onClick={() => setSubmitModal(false)}
-                  className="flex-1 py-3 bg-white border border-zinc-200 text-zinc-700 rounded-xl font-medium hover:bg-zinc-50 transition-all"
+                  className="flex-1 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-2xl font-medium hover:bg-zinc-50 transition-all hover:scale-105"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitAssignment}
-                  className="flex-1 py-3 bg-[#1D1D1F] text-white rounded-xl font-semibold hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl font-semibold hover:bg-zinc-800 transition-all hover:scale-105 flex items-center justify-center gap-3"
                 >
-                  <Send className="w-4 h-4" /> Submit Assignment
+                  <Send className="w-5 h-5" /> Submit Assignment
                 </button>
               </div>
             </div>
