@@ -4,20 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Play, Plus } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion, onSnapshot, orderBy } from 'firebase/firestore';
 import ChallengeInbox from '@/components/ChallengeInbox';
-
-// Sample upcoming tasks data
-const upcomingTasks = [
-  { title: 'Math Assignment Ch.5', due: 'Tomorrow', urgent: true },
-  { title: 'Physics Lab Report', due: 'Apr 22', urgent: false },
-  { title: 'English Essay', due: 'Apr 25', urgent: false },
-  { title: 'Chemistry Quiz', due: 'Apr 28', urgent: false },
-];
 
 export default function StudentDashboardHome() {
   const router = useRouter();
   const [doubtQuestion, setDoubtQuestion] = useState('');
+  const [pendingTasks, setPendingTasks] = useState([]);
   const [userSubscription, setUserSubscription] = useState({
     subscriptionPlan: null,
     enrolledCourses: [],
@@ -78,7 +71,83 @@ export default function StudentDashboardHome() {
     };
 
     fetchEnrolledCourses();
+
+    // Setup real-time listener for pending assignments
+    const setupAssignmentsListener = () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const assignmentsQuery = query(
+        collection(db, 'assignments'),
+        where('status', '!=', 'completed'),
+        orderBy('dueDate', 'asc')
+      );
+
+      const unsubscribe = onSnapshot(assignmentsQuery, (snapshot) => {
+        const assignments = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.title || 'Untitled Assignment',
+            dueDate: data.dueDate,
+            due: formatDueDate(data.dueDate),
+            urgent: isUrgent(data.dueDate),
+            courseId: data.courseId,
+            submittedBy: data.submittedBy || []
+          };
+        });
+
+        // Filter assignments for student's enrolled courses
+        const studentAssignments = assignments.filter(assignment => 
+          filteredCourses.some(course => course.id === assignment.courseId) &&
+          !assignment.submittedBy.includes(user.uid)
+        );
+
+        setPendingTasks(studentAssignments);
+      }, (error) => {
+        console.error('Error listening to assignments:', error);
+      });
+
+      return unsubscribe;
+    };
+
+    const assignmentsUnsubscribe = setupAssignmentsListener();
+
+    return () => {
+      if (assignmentsUnsubscribe) {
+        assignmentsUnsubscribe();
+      }
+    };
   }, []);
+
+  // Helper functions for date formatting and urgency
+  const formatDueDate = (dueDate) => {
+    if (!dueDate) return 'No due date';
+    
+    const due = new Date(dueDate);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (due.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (due.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const isUrgent = (dueDate) => {
+    if (!dueDate) return false;
+    
+    const due = new Date(dueDate);
+    const today = new Date();
+    const timeDiff = due.getTime() - today.getTime();
+    const daysDiff = timeDiff / (1000 * 3600 * 24);
+    
+    return daysDiff <= 1; // Urgent if due within 1 day
+  };
 
   const handleStartCourse = async (courseId) => {
     try {
@@ -169,7 +238,7 @@ export default function StudentDashboardHome() {
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-          <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">5</div>
+          <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">{pendingTasks.length}</div>
           <div className="text-zinc-400 text-sm mt-1">Pending Tasks</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -279,16 +348,26 @@ export default function StudentDashboardHome() {
           {/* Upcoming Tasks Widget */}
           <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
             <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Upcoming Tasks</h2>
-            <div className="space-y-4">
-              {upcomingTasks.map((task, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-[#F5F5F7] rounded-xl">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 rounded-full ${task.urgent ? 'bg-red-500' : 'bg-zinc-300'}`}></div>
-                    <span className="text-[#1D1D1F] font-medium">{task.title}</span>
-                  </div>
-                  <span className="text-zinc-400 text-sm">{task.due}</span>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {pendingTasks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-zinc-500 text-lg font-serif tracking-tight">All caught up! 🌟</p>
                 </div>
-              ))}
+              ) : (
+                pendingTasks.slice(0, 5).map((task, index) => (
+                  <div key={task.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-blue-600 bg-white border-zinc-300 rounded focus:ring-blue-500 focus:ring-2"
+                        readOnly
+                      />
+                      <span className="text-black font-medium">{task.title}</span>
+                    </div>
+                    <span className="text-zinc-500 text-sm">{task.due}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
