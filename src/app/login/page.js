@@ -151,24 +151,29 @@ export default function LoginPage() {
     };
 
     return (
-      <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
+      <div className="min-h-screen flex items-center justify-center px-6 py-20">
         <div className="text-center">
           <div className="w-full max-w-md">
-            <div className="soft-card p-12 rounded-[2.5rem] bg-white border border-zinc-100 shadow-sm">
+            <div className="bg-white/80 backdrop-blur-md p-12 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5">
               <div className="text-center mb-12">
-                <span className="inline-block px-6 py-3 soft-card rounded-full text-xs font-medium text-zinc-500 uppercase tracking-widest mb-8 border border-zinc-50 bg-[#F5F5F7]">
+                <div className="w-16 h-16 bg-gradient-to-br from-zinc-900 to-zinc-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <span className="inline-block px-4 py-2 bg-zinc-50 rounded-full text-xs font-medium text-zinc-500 uppercase tracking-wider mb-6">
                   Already Logged In
                 </span>
-                <h2 className="text-4xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em]">
+                <h2 className="text-4xl font-bold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em] mb-4">
                   Welcome Back!
                 </h2>
-                <p className="text-zinc-600">You are already logged in as {user.email}</p>
+                <p className="text-zinc-500 text-lg leading-relaxed">You are already logged in as {user.email}</p>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-8">
                 <button
                   onClick={() => router.push(redirectPath)}
-                  className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-xl mt-4 hover:opacity-90 shadow-lg shadow-black/10 transition-all duration-200"
+                  className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-2xl hover:bg-zinc-800 shadow-lg shadow-black/10 transition-all duration-300 active:scale-[0.98]"
                 >
                   {getButtonText()}
                 </button>
@@ -182,47 +187,52 @@ export default function LoginPage() {
 
   // Show login form for non-logged in users
   return (
-    <div className="bg-[#FBFBFD] text-zinc-500 font-['Inter'] min-h-screen flex items-center justify-center px-6 py-20">
+    <div className="min-h-screen flex items-center justify-center px-6 py-20">
       <div className="w-full max-w-md">
-        <div className="soft-card p-12 rounded-[2.5rem] bg-white border border-zinc-100 shadow-sm">
+        <div className="bg-white/80 backdrop-blur-md p-12 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5">
           <div className="text-center mb-12">
-            <span className="inline-block px-6 py-3 soft-card rounded-full text-xs font-medium text-zinc-500 uppercase tracking-widest mb-8 border border-zinc-50 bg-[#F5F5F7]">
+            <div className="w-16 h-16 bg-gradient-to-br from-zinc-900 to-zinc-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+            </div>
+            <span className="inline-block px-4 py-2 bg-zinc-50 rounded-full text-xs font-medium text-zinc-500 uppercase tracking-wider mb-6">
               Secure Login
             </span>
-            <h2 className="text-4xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em]">
+            <h2 className="text-4xl font-bold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em] mb-4">
               Welcome Back.
             </h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {error && (
-              <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm text-center">
+              <div className="p-4 bg-red-50/80 backdrop-blur-sm border border-red-100/50 rounded-2xl text-red-600 text-sm text-center font-medium">
                 {error}
               </div>
             )}
 
-            <div className="space-y-3">
-              <label className="text-xs font-medium text-zinc-400 uppercase tracking-widest ml-1">Email Address</label>
+            <div className="space-y-4">
+              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider ml-1">Email Address</label>
               <input 
                 type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@example.com"
-                className="w-full px-5 py-4 bg-[#F5F5F7] rounded-2xl text-[#1D1D1F] outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                className="w-full px-5 py-4 bg-zinc-50 rounded-2xl text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-black/10 border border-transparent focus:border-zinc-200 transition-all duration-300"
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-medium text-zinc-400 uppercase tracking-widest ml-1">Password</label>
-                <Link href="#" className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">Forgot?</Link>
+                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider ml-1">Password</label>
+                <Link href="#" className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors duration-200">Forgot?</Link>
               </div>
               <input 
                 type="password" name="password" value={formData.password} onChange={handleChange} placeholder="..."
-                className="w-full px-5 py-4 bg-[#F5F5F7] rounded-2xl text-[#1D1D1F] outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                className="w-full px-5 py-4 bg-zinc-50 rounded-2xl text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-black/10 border border-transparent focus:border-zinc-200 transition-all duration-300"
               />
             </div>
 
             <button 
               type="submit" 
-              className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-full mt-4 hover:opacity-90 shadow-lg shadow-black/10"
+              className="w-full py-4 bg-[#1D1D1F] text-white font-semibold rounded-2xl hover:bg-zinc-800 shadow-lg shadow-black/10 transition-all duration-300 active:scale-[0.98]"
             >
               Sign In
             </button>

@@ -125,74 +125,108 @@ export default function TeacherDashboardHome() {
   return (
     <div>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em] mb-2">
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold text-[#1D1D1F] font-['Syne'] tracking-[-0.04em] mb-3">
           Welcome back! Instructor
         </h1>
-        <p className="text-zinc-500">{getCurrentDate()}</p>
+        <p className="text-zinc-500 text-lg leading-relaxed">{getCurrentDate()}</p>
       </div>
 
-      {/* Stats Row - 3 Large Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
-          <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">{stats.totalStudents}</div>
-          <div className="text-zinc-400 text-sm mt-1">Total Students</div>
+      {/* Stats Row - 3 Premium Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+              <Users className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+              Active
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1D1D1F] font-['Syne'] mb-2">{stats.totalStudents}</div>
+          <div className="text-zinc-500 text-sm font-medium">Total Students</div>
         </div>
-        <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
-          <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">{stats.activeCourses}</div>
-          <div className="text-zinc-400 text-sm mt-1">Active Courses</div>
+        
+        <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+              <BookOpen className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
+              Active
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1D1D1F] font-['Syne'] mb-2">{stats.activeCourses}</div>
+          <div className="text-zinc-500 text-sm font-medium">Active Courses</div>
         </div>
-        <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
-          <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">{stats.newDoubts}</div>
-          <div className="text-zinc-400 text-sm mt-1">New Doubts</div>
+        
+        <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center">
+              <MessageCircle className="w-6 h-6 text-amber-600" />
+            </div>
+            <div className="text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+              Pending
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#1D1D1F] font-['Syne'] mb-2">{stats.newDoubts}</div>
+          <div className="text-zinc-500 text-sm font-medium">New Doubts</div>
         </div>
       </div>
 
       {/* Quick Actions Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-[#1D1D1F] font-['Syne'] mb-8">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <button 
             onClick={() => router.push('/teacher-dashboard/courses-1')}
-            className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100 hover:shadow-lg transition-all duration-300 text-left group"
+            className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5 hover:shadow-xl transition-all duration-300 text-left group hover:scale-[1.02] active:scale-[0.98]"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <BookOpen className="w-6 h-6 text-white" />
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <BookOpen className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">Create Course</h3>
-                <p className="text-zinc-500 text-sm">Add a new course to your curriculum</p>
+                <h3 className="text-xl font-bold text-[#1D1D1F] font-['Syne'] mb-3">Create Course</h3>
+                <p className="text-zinc-500 leading-relaxed">Add a new course to your curriculum</p>
               </div>
-              <ArrowUpRight className="w-5 h-5 text-zinc-400 group-hover:text-black transition-colors" />
+              <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center group-hover:bg-zinc-100 transition-colors duration-300">
+                <ArrowUpRight className="w-6 h-6 text-zinc-400 group-hover:text-zinc-600 transition-colors duration-300" />
+              </div>
             </div>
           </button>
 
           <button 
             onClick={() => router.push('/teacher-dashboard/assignments')}
-            className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100 hover:shadow-lg transition-all duration-300 text-left group"
+            className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5 hover:shadow-xl transition-all duration-300 text-left group hover:scale-[1.02] active:scale-[0.98]"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6 text-white" />
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Plus className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">Post Assignment</h3>
-                <p className="text-zinc-500 text-sm">Create and assign new tasks to students</p>
+                <h3 className="text-xl font-bold text-[#1D1D1F] font-['Syne'] mb-3">Post Assignment</h3>
+                <p className="text-zinc-500 leading-relaxed">Create and assign new tasks to students</p>
               </div>
-              <ArrowUpRight className="w-5 h-5 text-zinc-400 group-hover:text-black transition-colors" />
+              <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center group-hover:bg-zinc-100 transition-colors duration-300">
+                <ArrowUpRight className="w-6 h-6 text-zinc-400 group-hover:text-zinc-600 transition-colors duration-300" />
+              </div>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
-      <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-zinc-100">
-        <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Recent Activity</h2>
-        <div className="space-y-4">
-          <p className="text-zinc-400 text-center py-10 border-2 border-dashed border-zinc-100 rounded-3xl">
-            No recent activity to display
-          </p>
+      {/* Recent Activity */}
+      <div className="bg-white/80 backdrop-blur-md p-10 rounded-3xl border border-zinc-100/50 shadow-lg shadow-zinc-900/5">
+        <h2 className="text-2xl font-bold text-[#1D1D1F] font-['Syne'] mb-8">Recent Activity</h2>
+        <div className="space-y-6">
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Clock className="w-8 h-8 text-zinc-400" />
+            </div>
+            <p className="text-zinc-500 text-lg font-medium mb-2">No recent activity to display</p>
+            <p className="text-zinc-400 text-sm">Your recent actions will appear here</p>
+          </div>
         </div>
       </div>
     </div>
