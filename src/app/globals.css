@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-syne: 'Syne', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+:root {
+  --background: #FBFBFD;
+  --foreground: #1D1D1F;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Clean Studio: Soft Card Shadow */
+.soft-card {
+  background: #ffffff;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s ease;
+}
+.soft-card:hover {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Matte Black Button */
+.matte-btn {
+  background: #1D1D1F;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+.matte-btn:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+/* Secondary: Transparent with fine border */
+.ghost-btn {
+  background: transparent;
+  border: 1px solid rgba(29, 29, 31, 0.15);
+  color: #1D1D1F;
+  transition: all 0.3s ease;
+}
+.ghost-btn:hover {
+  border-color: rgba(29, 29, 31, 0.3);
+  background: rgba(29, 29, 31, 0.03);
+}
+
+/* Input: Clean minimal */
+.clean-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.1);
+  transition: all 0.3s ease;
+}
+.clean-input:focus {
+  border-bottom-color: rgba(29, 29, 31, 0.3);
+  outline: none;
+}
+
+/* Grain texture - very subtle for light mode */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  opacity: 0.02;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  z-index: 9999;
+}
