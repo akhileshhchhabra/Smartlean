@@ -50,8 +50,8 @@ export default function TeacherLayout({ children }) {
           } else if (status === 'pending') {
             router.push('/teacher-verification-pending');
             return;
-          } else if (status === 'rejected') {
-            router.push('/teacher-onboarding'); // Allow retry after rejection
+          } else if (status === 'denied') {
+            router.push('/teacher-denied');
             return;
           }
         }

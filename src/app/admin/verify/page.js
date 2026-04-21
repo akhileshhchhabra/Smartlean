@@ -41,6 +41,7 @@ export default function AdminVerification() {
     try {
       const q = query(
         collection(db, 'users'),
+        where('role', '==', 'Teacher'),
         where('verificationStatus', '==', 'pending')
       );
       const snapshot = await getDocs(q);
@@ -89,7 +90,7 @@ export default function AdminVerification() {
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
         isVerified: false,
-        verificationStatus: 'rejected',
+        verificationStatus: 'denied',
         rejectedAt: new Date().toISOString()
       });
 
@@ -298,12 +299,12 @@ export default function AdminVerification() {
                         {processing[teacher.id] === 'rejecting' ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Rejecting...
+                            Denying...
                           </>
                         ) : (
                           <>
                             <XCircle className="w-4 h-4" />
-                            Reject
+                            Deny
                           </>
                         )}
                       </button>

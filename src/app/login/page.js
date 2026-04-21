@@ -66,6 +66,10 @@ export default function LoginPage() {
             // Pending User - Redirect to waiting page
             router.push('/teacher-verification-pending');
             return;
+          } else if (verificationStatus === 'denied') {
+            // Denied User - Redirect to denied page
+            router.push('/teacher-denied');
+            return;
           } else {
             // New/Unfinished User - Redirect to onboarding
             router.push('/teacher-onboarding');

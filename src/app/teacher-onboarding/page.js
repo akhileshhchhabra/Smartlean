@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, CheckCircle, AlertCircle, User, BookOpen, Send } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, User, BookOpen, Send, Clock, LogOut } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
 import { collection, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -152,11 +152,6 @@ export default function TeacherOnboarding() {
       // Set success state
       setSuccess(true);
       
-      // Redirect after 3 seconds
-      setTimeout(() => {
-        router.push('/teacher-verification-pending');
-      }, 3000);
-      
     } catch (error) {
       console.error('Detailed error submitting verification:', error);
       console.error('Error code:', error.code);
@@ -197,16 +192,35 @@ export default function TeacherOnboarding() {
     return (
       <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-8">
         <div className="bg-white rounded-3xl border border-zinc-100 p-12 max-w-md w-full text-center shadow-sm">
-          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F] mb-4">Verification Submitted</h2>
-          <p className="text-zinc-600 mb-2">
-            Your verification documents have been submitted successfully.
+          <h2 className="text-3xl font-bold text-[#1D1D1F] mb-4">Application Submitted!</h2>
+          <p className="text-zinc-600 text-lg mb-6">
+            Your application has been submitted successfully! It will be reviewed (Approved or Denied) by the Admin. Please check back in 2-3 hours.
           </p>
-          <p className="text-zinc-500 text-sm">
-            You will be redirected to the pending page...
-          </p>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
+              <Clock className="w-4 h-4" />
+              <span>Review time: 2-3 hours</span>
+            </div>
+            
+            <button
+              onClick={async () => {
+                try {
+                  await auth.signOut();
+                  router.push('/login');
+                } catch (error) {
+                  console.error('Error signing out:', error);
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-semibold hover:bg-zinc-800 transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     );
