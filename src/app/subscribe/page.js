@@ -2,7 +2,7 @@
 
 import { Check, Zap, Crown } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 export default function SubscribePage() {
@@ -13,10 +13,11 @@ export default function SubscribePage() {
     if (user) {
       try {
         const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, {
+        await setDoc(userRef, {
           subscriptionPlan: planType,
-          hasSelectedPlan: true
-        });
+          hasSelectedPlan: true,
+          planSelectedAt: new Date().toISOString()
+        }, { merge: true });
         router.push('/student-dashboard');
       } catch (err) {
         console.error("Error updating plan:", err);

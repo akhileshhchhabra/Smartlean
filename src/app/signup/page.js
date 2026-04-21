@@ -49,6 +49,7 @@ export default function RegisterPage() {
         fullName: formData.fullName,
         email: formData.email,
         role: formData.role,
+        subscriptionPlan: formData.role === 'Student' ? 'free' : null,
         hasSelectedPlan: formData.role === 'Student' ? false : null,
         createdAt: new Date().toISOString()
       });

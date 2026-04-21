@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
@@ -67,9 +67,10 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Login successful for user:', userCredential.user.email);
       
-      // Get user data and redirect based on role
+      // Get user data and create document if it doesn't exist
       try {
-        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        const userDocRef = doc(db, 'users', userCredential.user.uid);
+        const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -91,11 +92,23 @@ export default function LoginPage() {
             router.push('/subscribe');
           }
         } else {
-          console.log('User document not found, redirecting to subscribe');
+          // Auto-create user document for new users
+          console.log('User document not found, creating new document');
+          await setDoc(userDocRef, {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            role: 'student',
+            subscriptionPlan: 'free',
+            hasSelectedPlan: false,
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString()
+          });
+          
+          console.log('User document created, redirecting to subscribe');
           router.push('/subscribe');
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('Error fetching/creating user data:', error);
         router.push('/subscribe');
       }
       
