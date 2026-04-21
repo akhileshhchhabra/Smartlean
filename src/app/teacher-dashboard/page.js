@@ -35,28 +35,21 @@ export default function TeacherDashboardHome() {
           return;
         }
 
-        // Step 2: Get all course IDs taught by this teacher
-        const courseIds = coursesSnapshot.docs.map(doc => doc.id);
-
-        // Step 3: Query enrollments collection for these specific course IDs
-        const enrollmentsQuery = query(
-          collection(db, 'enrollments'),
-          where('courseId', 'in', courseIds)
-        );
-        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-
-        // Step 4: Count unique student IDs (students enrolled in teacher's courses)
-        const uniqueStudentIds = new Set();
-        enrollmentsSnapshot.forEach(doc => {
-          uniqueStudentIds.add(doc.data().studentId);
+        // Step 2: Calculate total students from course documents (source of truth)
+        // Sum up studentCount from all course documents
+        let totalStudents = 0;
+        coursesSnapshot.forEach(doc => {
+          const courseData = doc.data();
+          const studentCount = courseData.studentCount || 0;
+          totalStudents += studentCount;
         });
 
-        // Step 5: Fetch New Doubts (status == 'pending')
+        // Step 3: Fetch New Doubts (status == 'pending')
         const doubtsQuery = query(collection(db, 'doubts'), where('status', '==', 'pending'));
         const doubtsSnapshot = await getDocs(doubtsQuery);
 
         setStats({
-          totalStudents: uniqueStudentIds.size, // Only students in teacher's courses
+          totalStudents: totalStudents, // Sum of studentCount from all courses
           activeCourses: coursesSnapshot.size,
           newDoubts: doubtsSnapshot.size
         });
