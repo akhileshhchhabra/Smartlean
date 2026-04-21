@@ -21,20 +21,42 @@ export default function TeacherDashboardHome() {
         const user = auth.currentUser;
         if (!user) return;
 
-        // Fetch Total Students (role == 'Student')
-        const studentsQuery = query(collection(db, 'users'), where('role', '==', 'Student'));
-        const studentsSnapshot = await getDocs(studentsQuery);
-
-        // Fetch Active Courses (teacherId == current user)
+        // Step 1: Fetch all courses taught by current teacher
         const coursesQuery = query(collection(db, 'courses'), where('teacherId', '==', user.uid));
         const coursesSnapshot = await getDocs(coursesQuery);
+        
+        if (coursesSnapshot.empty) {
+          // Teacher has no courses yet
+          setStats({
+            totalStudents: 0,
+            activeCourses: 0,
+            newDoubts: 0
+          });
+          return;
+        }
 
-        // Fetch New Doubts (status == 'pending')
+        // Step 2: Get all course IDs taught by this teacher
+        const courseIds = coursesSnapshot.docs.map(doc => doc.id);
+
+        // Step 3: Query enrollments collection for these specific course IDs
+        const enrollmentsQuery = query(
+          collection(db, 'enrollments'),
+          where('courseId', 'in', courseIds)
+        );
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
+        // Step 4: Count unique student IDs (students enrolled in teacher's courses)
+        const uniqueStudentIds = new Set();
+        enrollmentsSnapshot.forEach(doc => {
+          uniqueStudentIds.add(doc.data().studentId);
+        });
+
+        // Step 5: Fetch New Doubts (status == 'pending')
         const doubtsQuery = query(collection(db, 'doubts'), where('status', '==', 'pending'));
         const doubtsSnapshot = await getDocs(doubtsQuery);
 
         setStats({
-          totalStudents: studentsSnapshot.size,
+          totalStudents: uniqueStudentIds.size, // Only students in teacher's courses
           activeCourses: coursesSnapshot.size,
           newDoubts: doubtsSnapshot.size
         });
