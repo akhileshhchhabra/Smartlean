@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, FileText, User, Mail, Shield, AlertTriangle, Clock, Download } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Mail, Shield, AlertTriangle, Clock } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -132,40 +132,6 @@ export default function AdminPortal() {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const handleViewDocument = (documentBase64, documentName) => {
-    // Create a new window to display the document
-    const newWindow = window.open('', '_blank');
-    if (documentBase64.startsWith('data:image/')) {
-      // For images, display directly
-      newWindow.document.write(`
-        <html>
-          <head><title>${documentName}</title></head>
-          <body style="margin:0;padding:20px;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;">
-            <img src="${documentBase64}" style="max-width:100%;max-height:90vh;box-shadow:0 4px 6px rgba(0,0,0,0.1);" />
-          </body>
-        </html>
-      `);
-    } else if (documentBase64.startsWith('data:application/pdf')) {
-      // For PDFs, embed or download
-      newWindow.document.write(`
-        <html>
-          <head><title>${documentName}</title></head>
-          <body style="margin:0;padding:20px;display:flex;flex-direction:column;align-items:center;min-height:100vh;background:#f5f5f5;">
-            <p style="margin-bottom:20px;color:#666;">PDF Document: ${documentName}</p>
-            <iframe src="${documentBase64}" style="width:100%;height:80vh;border:none;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></iframe>
-          </body>
-        </html>
-      `);
-    } else {
-      // For other files, provide download link
-      const link = document.createElement('a');
-      link.href = documentBase64;
-      link.download = documentName;
-      newWindow.document.body.appendChild(link);
-      link.click();
-    }
   };
 
   if (loading) {
@@ -304,11 +270,55 @@ export default function AdminPortal() {
                         </div>
                       </div>
 
-                      {/* Document Preview: Show uploaded document using documentBase64 */}
+                      {/* Document Preview: Display this Base64 string in an <img> tag */}
                       {teacher.documentBase64 && (
                         <div className="mt-3">
+                          <div className="mb-2">
+                            <p className="text-sm font-medium text-zinc-700 mb-2">Document Preview:</p>
+                            {teacher.documentBase64.startsWith('data:image/') ? (
+                              <div className="border border-zinc-200 rounded-xl p-2 bg-zinc-50">
+                                <img 
+                                  src={teacher.documentBase64} 
+                                  alt={teacher.documentName || 'Document'}
+                                  className="max-w-full h-auto max-h-64 object-contain rounded-lg"
+                                />
+                              </div>
+                            ) : (
+                              <div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50">
+                                <p className="text-sm text-zinc-600">
+                                  <FileText className="w-4 h-4 inline mr-2" />
+                                  {teacher.documentName || 'Document'} ({(teacher.documentSize / 1024 / 1024).toFixed(2)} MB)
+                                </p>
+                                <p className="text-xs text-zinc-500 mt-1">
+                                  PDF/Document files cannot be previewed directly. Click View Document to open in new tab.
+                                </p>
+                              </div>
+                            )}
+                          </div>
                           <button
-                            onClick={() => handleViewDocument(teacher.documentBase64, teacher.documentName)}
+                            onClick={() => {
+                              const newWindow = window.open('', '_blank');
+                              if (teacher.documentBase64.startsWith('data:image/')) {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>${teacher.documentName}</title></head>
+                                    <body style="margin:0;padding:20px;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;">
+                                      <img src="${teacher.documentBase64}" style="max-width:100%;max-height:90vh;box-shadow:0 4px 6px rgba(0,0,0,0.1);" />
+                                    </body>
+                                  </html>
+                                `);
+                              } else {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>${teacher.documentName}</title></head>
+                                    <body style="margin:0;padding:20px;display:flex;flex-direction:column;align-items:center;min-height:100vh;background:#f5f5f5;">
+                                      <p style="margin-bottom:20px;color:#666;">Document: ${teacher.documentName}</p>
+                                      <iframe src="${teacher.documentBase64}" style="width:100%;height:80vh;border:none;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></iframe>
+                                    </body>
+                                  </html>
+                                `);
+                              }
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
                           >
                             <FileText className="w-4 h-4" />

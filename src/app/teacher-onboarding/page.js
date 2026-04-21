@@ -32,12 +32,6 @@ export default function TeacherOnboarding() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (limit to ~1MB for Base64 efficiency)
-      if (file.size > 1024 * 1024) {
-        setError('File size must be less than 1MB for Base64 encoding.');
-        return;
-      }
-
       setSelectedFile(file);
       setError('');
       
@@ -82,8 +76,8 @@ export default function TeacherOnboarding() {
         return;
       }
 
-      // Submission: Save directly to Firestore with Base64
-      console.log('Starting submission with Base64...');
+      // Save Base64 string into user's Firestore document under field documentBase64
+      console.log('Saving Base64 document to Firestore...');
       
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
