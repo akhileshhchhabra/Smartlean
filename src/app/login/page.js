@@ -54,8 +54,23 @@ export default function LoginPage() {
 
         // 1. Check for Teacher
         if (userData.role === 'Teacher') {
-          router.push('/teacher-dashboard');
-          return;
+          // Check verification status for teachers
+          const isVerified = userData.isVerified || false;
+          const verificationStatus = userData.verificationStatus || 'none';
+          
+          if (isVerified === true) {
+            // Approved User - Redirect to dashboard
+            router.push('/teacher-dashboard');
+            return;
+          } else if (verificationStatus === 'pending') {
+            // Pending User - Redirect to waiting page
+            router.push('/teacher-verification-pending');
+            return;
+          } else {
+            // New/Unfinished User - Redirect to onboarding
+            router.push('/teacher-onboarding');
+            return;
+          }
         }
 
         // 2. Check for Student Subscription

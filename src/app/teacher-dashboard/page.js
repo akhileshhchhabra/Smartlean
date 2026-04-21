@@ -14,38 +14,12 @@ export default function TeacherDashboardHome() {
     newDoubts: 0
   });
   const [loading, setLoading] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('none');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const user = auth.currentUser;
         if (!user) return;
-
-        // Check verification status first
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (!userDoc.exists()) {
-          router.push('/teacher-onboarding');
-          return;
-        }
-
-        const userData = userDoc.data();
-        const verified = userData.isVerified || false;
-        const status = userData.verificationStatus || 'none';
-
-        setIsVerified(verified);
-        setVerificationStatus(status);
-
-        // Redirect if not verified
-        if (!verified) {
-          if (status === 'none') {
-            router.push('/teacher-onboarding');
-          } else if (status === 'pending') {
-            router.push('/teacher-verification-pending');
-          }
-          return;
-        }
 
         // Step 1: Fetch all courses taught by current teacher
         const coursesQuery = query(collection(db, 'courses'), where('teacherId', '==', user.uid));
