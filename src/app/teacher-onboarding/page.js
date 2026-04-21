@@ -12,6 +12,7 @@ export default function TeacherOnboarding() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     expertise: '',
@@ -102,12 +103,15 @@ export default function TeacherOnboarding() {
     // Clear previous errors
     setError('');
     
-    // Validate form
+    // ============================================
+    // VALIDATION: Check if file is selected
+    // ============================================
     if (!selectedFile) {
-      setError('Please upload a verification document.');
+      alert('Please upload a document first.');
       return;
     }
     
+    // Validate form fields
     if (!formData.fullName || !formData.expertise || !formData.bio) {
       setError('Please fill in all required fields.');
       return;
@@ -121,15 +125,15 @@ export default function TeacherOnboarding() {
       // Get authenticated user
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        console.error('❌ No authenticated user found');
-        setError('No authenticated user found. Please log in again.');
+        console.error("FIREBASE_ERROR:", 'NO_AUTH', 'No authenticated user found');
+        alert('No authenticated user found. Please log in again.');
         return;
       }
       
       console.log('✅ User authenticated:', currentUser.uid);
       
       // ============================================
-      // STEP 1: UPLOAD TO FIREBASE STORAGE
+      // STEP 1: STORAGE UPLOAD
       // ============================================
       console.log('📤 Step 1: Uploading file to Firebase Storage...');
       
@@ -137,139 +141,88 @@ export default function TeacherOnboarding() {
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
       console.log('📁 File name:', fileName);
       console.log('📏 File size:', `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log('📂 File type:', selectedFile.type);
       
       // Create storage reference with proper path
       const storageRef = ref(storage, `verification_docs/${currentUser.uid}/${fileName}`);
       console.log('🗂️ Storage ref created:', `verification_docs/${currentUser.uid}/${fileName}`);
       
-      // Upload file to Firebase Storage using resumable upload
-      console.log('⬆️ Starting resumable upload...');
-      const uploadTask = uploadBytesResumable(storageRef, selectedFile);
-      
-      // Wait for upload to complete with progress tracking
-      const uploadSnapshot = await new Promise((resolve, reject) => {
-        uploadTask.on('state_changed', (snapshot) => {
-          console.log(`📊 Upload state: ${snapshot.state}`);
-          if (snapshot.state === 'running') {
-            console.log(`📈 Progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%`);
-          }
-        });
-        
-        uploadTask.on('error', (error) => {
-          console.error('❌ Upload error:', error);
-          reject(error);
-        });
-        
-        uploadTask.on('complete', () => {
-          console.log('✅ Upload completed successfully');
-          resolve(uploadTask.snapshot);
-        });
-      });
-      
+      // Upload file to Firebase Storage using uploadBytes
+      console.log('⬆️ Starting upload...');
+      const uploadSnapshot = await uploadBytes(storageRef, selectedFile);
       console.log('✅ Step 1 Complete: File uploaded to Storage');
       
       // ============================================
-      // STEP 2: GET DOWNLOAD URL
+      // STEP 2: GET URL
       // ============================================
       console.log('🔗 Step 2: Getting download URL...');
       
-      // Get download URL from the upload snapshot
+      // Wait for upload to finish, then fetch downloadURL
       const downloadURL = await getDownloadURL(uploadSnapshot.ref);
       console.log('✅ Step 2 Complete: Download URL obtained:', downloadURL);
       
       // ============================================
-      // STEP 3: UPDATE FIRESTORE
+      // STEP 3: FIRESTORE UPDATE
       // ============================================
       console.log('💾 Step 3: Updating Firestore user document...');
       
       // Update user document in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
       const updateData = {
+        verificationStatus: 'pending',
+        documentUrl: downloadURL,
+        isVerified: false,
         fullName: formData.fullName.trim(),
         expertise: formData.expertise.trim(),
         bio: formData.bio.trim(),
-        documentUrl: downloadURL,
         documentFileName: fileName,
         documentSize: selectedFile.size,
         documentType: selectedFile.type,
-        verificationStatus: 'pending',
-        isVerified: false,
         submittedAt: serverTimestamp()
       };
       
-      console.log('📝 Update data prepared:', {
-        fullName: updateData.fullName,
-        expertise: updateData.expertise,
-        documentUrl: downloadURL.substring(0, 50) + '...' // Truncate for logging
+      console.log('📝 Update data:', {
+        verificationStatus: updateData.verificationStatus,
+        documentUrl: downloadURL.substring(0, 50) + '...',
+        isVerified: updateData.isVerified
       });
       
       await updateDoc(userRef, updateData);
       console.log('✅ Step 3 Complete: Firestore document updated successfully');
       
       // ============================================
-      // STEP 4: SUCCESS STATE
+      // STEP 4: SUCCESS FEEDBACK
       // ============================================
       console.log('🎉 All steps completed successfully!');
       
-      // Set success state only after ALL operations complete
-      setSuccess(true);
+      // On success, set isSubmitted state to true
+      setIsSubmitted(true);
       
     } catch (error) {
-      console.error('❌ Submission failed:', error);
-      console.error('🔍 Error code:', error.code);
-      console.error('📝 Error message:', error.message);
-      console.error('📍 Error stack:', error.stack);
-      
       // ============================================
-      // SPECIFIC ERROR HANDLING
+      // ERROR TRACKING: Crucial logging and alert
       // ============================================
-      let errorMessage = 'Registration failed. Please try again.';
+      console.error("FIREBASE_ERROR:", error.code, error.message);
+      console.error("FULL_ERROR:", error);
       
-      // Firebase Storage Errors
-      if (error.code === 'storage/unauthorized') {
-        errorMessage = '❌ Storage permission denied. Please check your Firebase Storage rules.';
-      } else if (error.code === 'storage/canceled') {
-        errorMessage = '❌ Upload was cancelled. Please try again.';
-      } else if (error.code === 'storage/unknown') {
-        errorMessage = '❌ Storage error occurred. Please try again.';
-      } else if (error.code === 'storage/quota-exceeded') {
-        errorMessage = '❌ Storage quota exceeded. Please try a smaller file.';
-      } else if (error.code === 'storage/retry-limit-exceeded') {
-        errorMessage = '❌ Too many retry attempts. Please wait and try again.';
-      }
-      // Firebase Firestore Errors
-      else if (error.code === 'firestore/permission-denied') {
-        errorMessage = '❌ Database permission denied. Please check your Firestore rules.';
-      } else if (error.code === 'firestore/not-found') {
-        errorMessage = '❌ User document not found. Please contact support.';
-      } else if (error.code === 'firestore/unavailable') {
-        errorMessage = '❌ Database temporarily unavailable. Please try again.';
-      } else if (error.code === 'firestore/deadline-exceeded') {
-        errorMessage = '❌ Request timeout. Please check your connection and try again.';
-      }
-      // Network/Connection Errors
-      else if (error.message && error.message.includes('network')) {
-        errorMessage = '❌ Network error. Please check your internet connection.';
-      } else if (error.message && error.message.includes('timeout')) {
-        errorMessage = '❌ Request timeout. Please try again.';
-      }
-      // Generic Error
-      else if (error.message) {
-        errorMessage = `❌ Error: ${error.message}`;
+      // User Alert: Show specific Firebase error message
+      if (error.code && error.message) {
+        alert(`Firebase Error (${error.code}): ${error.message}`);
+      } else if (error.message) {
+        alert(`Error: ${error.message}`);
+      } else {
+        alert('Registration failed. Please try again.');
       }
       
-      // Show error message with alert for immediate visibility
-      alert(errorMessage);
-      setError(errorMessage);
+      // Also set error state for UI
+      setError(`Error: ${error.message || 'Registration failed'}`);
       
     } finally {
       // ============================================
-      // ALWAYS RESET SUBMITTING STATE
+      // SAFETY: Always reset submitting state
       // ============================================
       setSubmitting(false);
-      console.log('🔄 Submitting state reset - button is clickable again');
-      console.log('🏁 Submission process completed (success or error)');
+      console.log('🔄 Submitting state reset - button unlocked');
+      console.log('🏁 Submission process completed');
     }
   };
 
@@ -277,6 +230,38 @@ export default function TeacherOnboarding() {
     return (
       <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center">
         <div className="text-zinc-500">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-[#FBFBFD] flex items-center justify-center p-8">
+        <div className="bg-white rounded-3xl border border-zinc-100 p-12 max-w-md w-full text-center shadow-sm">
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1D1D1F] mb-4">Submitted!</h2>
+          <p className="text-zinc-600 text-lg mb-6">
+            Admin will review your application in 2-3 hours.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push('/teacher-dashboard')}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              Go to Dashboard
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
