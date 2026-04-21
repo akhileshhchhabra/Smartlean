@@ -357,88 +357,18 @@ export default function StudentDashboardHome() {
         )}
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - 2/3 width */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* My Challenges Section */}
-          <ChallengeInbox />
+      {/* Main Content - Full Width */}
+      <div className="space-y-6">
+        {/* My Challenges Section */}
+        <ChallengeInbox />
 
-          {/* Upcoming Tasks Widget */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
-            <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Upcoming Tasks</h2>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {pendingTasks.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-zinc-500 text-lg font-serif tracking-tight">You're all caught up! �</p>
-                </div>
-              ) : (
-                pendingTasks.slice(0, 5).map((task, index) => (
-                  <div key={task.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 text-blue-600 bg-white border-zinc-300 rounded focus:ring-blue-500 focus:ring-2"
-                        onChange={() => handleTaskSubmit(task.id)}
-                        checked={false}
-                      />
-                      <span className="text-black font-medium">{task.title}</span>
-                    </div>
-                    <span className="text-zinc-500 text-sm">{task.due}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Performance Graph Placeholder */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
-            <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Semester Performance</h2>
-            <div className="h-48 bg-[#F5F5F7] rounded-xl flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-zinc-400 text-sm">Performance Chart Placeholder</p>
-                <p className="text-zinc-300 text-xs mt-1">Connect a chart library for visualization</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - 1/3 width */}
-        <div className="space-y-6">
-          {/* Quick Ask - Doubt Section */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
-            <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-4">Quick Ask</h2>
-            <p className="text-zinc-400 text-sm mb-4">Have a doubt? Ask your teacher!</p>
-            <textarea
-              value={doubtQuestion}
-              onChange={(e) => setDoubtQuestion(e.target.value)}
-              placeholder="Type your question here..."
-              className="w-full p-4 bg-[#F5F5F7] rounded-xl text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-black/5 resize-none h-24"
-            />
-            <button
-              onClick={handleDoubtSubmit}
-              className="w-full mt-4 py-3 bg-[#1D1D1F] text-white font-semibold rounded-xl text-sm transition-all hover:bg-zinc-800"
-            >
-              Submit Question
-            </button>
-          </div>
-
-          {/* Recent Grades */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
-            <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-4">Recent Grades</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-zinc-500 text-sm">Mathematics</span>
-                <span className="text-[#1D1D1F] font-semibold">92%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-zinc-500 text-sm">Physics</span>
-                <span className="text-[#1D1D1F] font-semibold">88%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-zinc-500 text-sm">Chemistry</span>
-                <span className="text-[#1D1D1F] font-semibold">95%</span>
-              </div>
+        {/* Performance Graph Placeholder */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-zinc-100">
+          <h2 className="text-xl font-semibold text-[#1D1D1F] font-['Syne'] mb-6">Semester Performance</h2>
+          <div className="h-48 bg-[#F5F5F7] rounded-xl flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-zinc-400 text-sm">Performance Chart Placeholder</p>
+              <p className="text-zinc-300 text-xs mt-1">Connect a chart library for visualization</p>
             </div>
           </div>
         </div>
