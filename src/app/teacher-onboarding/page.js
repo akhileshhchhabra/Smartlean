@@ -99,6 +99,10 @@ export default function TeacherOnboarding() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Clear previous errors
+    setError('');
+    
+    // Validate form
     if (!selectedFile) {
       setError('Please upload a verification document.');
       return;
@@ -110,98 +114,108 @@ export default function TeacherOnboarding() {
     }
     
     setSubmitting(true);
-    setError('');
-    
-    // Create timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Submission timeout: Operation took longer than 10 seconds')), 10000);
-    });
     
     try {
-      console.log('Starting upload...');
-      const currentUser = auth.currentUser;
+      console.log('🚀 Starting verification submission...');
       
+      // Get authenticated user
+      const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
       
-      console.log('User authenticated:', currentUser.uid);
+      console.log('✅ User authenticated:', currentUser.uid);
       
-      // Create a unique file name with user ID and timestamp
+      // ============================================
+      // STEP 1: UPLOAD TO FIREBASE STORAGE
+      // ============================================
+      console.log('📤 Uploading file to Firebase Storage...');
+      
+      // Create unique file name with user ID and timestamp
       const fileName = `${currentUser.uid}_${Date.now()}_${selectedFile.name}`;
       const fileRef = ref(storage, `verification_docs/${fileName}`);
       
-      console.log('Uploading file to Storage:', fileName);
+      console.log('📁 File path:', `verification_docs/${fileName}`);
+      console.log('📏 File size:', selectedFile.size, 'bytes');
       
-      // Upload file to Firebase Storage with timeout
-      const uploadResult = await Promise.race([
-        uploadBytes(fileRef, selectedFile),
-        timeoutPromise
-      ]);
+      // Upload file to Firebase Storage
+      const uploadResult = await uploadBytes(fileRef, selectedFile);
+      console.log('✅ File uploaded successfully to Storage');
+      console.log('📊 Upload metadata:', uploadResult);
       
-      console.log('File uploaded to Storage...');
-      console.log('Upload result:', uploadResult);
+      // ============================================
+      // STEP 2: GET DOWNLOAD URL
+      // ============================================
+      console.log('🔗 Getting download URL...');
+      const downloadURL = await getDownloadURL(fileRef);
+      console.log('✅ Download URL obtained:', downloadURL);
       
-      // Get download URL with timeout
-      const downloadURL = await Promise.race([
-        getDownloadURL(fileRef),
-        timeoutPromise
-      ]);
+      // ============================================
+      // STEP 3: UPDATE FIRESTORE
+      // ============================================
+      console.log('💾 Updating Firestore user document...');
       
-      console.log('Download URL obtained:', downloadURL);
-      
-      console.log('Updating Firestore...');
-      
-      // Update user document in Firestore with timeout
+      // Update user document in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
-      await Promise.race([
-        updateDoc(userRef, {
-          fullName: formData.fullName,
-          expertise: formData.expertise,
-          bio: formData.bio,
-          documentUrl: downloadURL,
-          documentFileName: fileName, // Store file name for reference
-          verificationStatus: 'pending',
-          isVerified: false,
-          submittedAt: serverTimestamp()
-        }),
-        timeoutPromise
-      ]);
+      const updateData = {
+        fullName: formData.fullName,
+        expertise: formData.expertise,
+        bio: formData.bio,
+        documentUrl: downloadURL,
+        documentFileName: fileName, // Store file name for reference
+        verificationStatus: 'pending',
+        isVerified: false,
+        submittedAt: serverTimestamp()
+      };
       
-      console.log('Redirecting...');
+      console.log('📝 Update data:', updateData);
+      await updateDoc(userRef, updateData);
+      console.log('✅ Firestore document updated successfully');
       
-      // Set success state immediately after successful update
+      // ============================================
+      // STEP 4: SUCCESS STATE
+      // ============================================
+      console.log('🎉 Submission completed successfully!');
+      
+      // Set success state only after ALL operations complete
       setSuccess(true);
       
     } catch (error) {
-      console.error('Submission failed:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+      console.error('❌ Submission failed:', error);
+      console.error('🔍 Error code:', error.code);
+      console.error('📝 Error message:', error.message);
       
-      // Provide more specific error messages
+      // ============================================
+      // SPECIFIC ERROR HANDLING
+      // ============================================
       let errorMessage = 'Failed to submit verification. Please try again.';
       
-      if (error.message === 'Submission timeout: Operation took longer than 10 seconds') {
-        errorMessage = 'Submission timeout. Please check your internet connection and try again.';
-      } else if (error.code === 'storage/unauthorized') {
-        errorMessage = 'Storage permission denied. Please contact support.';
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = '❌ Storage permission denied. Please contact support.';
       } else if (error.code === 'storage/canceled') {
-        errorMessage = 'Upload was cancelled. Please try again.';
+        errorMessage = '❌ Upload was cancelled. Please try again.';
       } else if (error.code === 'storage/unknown') {
-        errorMessage = 'Storage error occurred. Please try again.';
+        errorMessage = '❌ Storage error occurred. Please try again.';
       } else if (error.code === 'firestore/permission-denied') {
-        errorMessage = 'Database permission denied. Please contact support.';
+        errorMessage = '❌ Database permission denied. Please contact support.';
       } else if (error.code === 'firestore/not-found') {
-        errorMessage = 'User document not found. Please contact support.';
+        errorMessage = '❌ User document not found. Please contact support.';
+      } else if (error.code === 'storage/quota-exceeded') {
+        errorMessage = '❌ Storage quota exceeded. Please try a smaller file.';
       } else if (error.message) {
-        errorMessage = `Error: ${error.message}`;
+        errorMessage = `❌ Error: ${error.message}`;
       }
       
+      // Show error message (could also use toast/alert)
       setError(errorMessage);
+      
     } finally {
-      // Always reset submitting state
+      // ============================================
+      // ALWAYS RESET SUBMITTING STATE
+      // ============================================
       setSubmitting(false);
-      console.log('Submission process completed');
+      console.log('🔄 Submitting state reset');
+      console.log('🏁 Submission process completed (success or error)');
     }
   };
 
