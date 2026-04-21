@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, FileText, User, Mail, Shield, AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Mail, Shield, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -22,7 +22,9 @@ export default function AdminPortal() {
         return;
       }
 
-      // Keep the hardcoded login: Username: Akhilesh chhabra | Password: #Chhabra2004
+      // Login Check: Use hardcoded credentials
+      // Username: Akhilesh chhabra
+      // Password: #Chhabra2004
       const adminCredentials = {
         email: 'akhileshchhabra@gmail.com',
         password: '#Chhabra2004'
@@ -45,7 +47,7 @@ export default function AdminPortal() {
     try {
       console.log('Setting up real-time listener for pending teachers...');
       
-      // Fetch all users from Firestore where verificationStatus === 'pending'
+      // Dashboard: Fetch and show teachers with pending status
       const q = query(
         collection(db, 'users'),
         where('verificationStatus', '==', 'pending')
@@ -82,6 +84,7 @@ export default function AdminPortal() {
     try {
       console.log(`Approving teacher: ${teacherId}`);
       
+      // Approve: Add a button that sets isVerified: true and verificationStatus: 'approved'
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, {
         isVerified: true,
@@ -93,8 +96,9 @@ export default function AdminPortal() {
       console.log(`Teacher ${teacherId} approved successfully`);
       
     } catch (error) {
+      // Error Tracking: Add try-catch to all Firestore operations and use alert() to show any errors
+      alert('Error Code: ' + error.code + '\nMessage: ' + error.message);
       console.error('Error approving teacher:', error);
-      alert(`Failed to approve teacher: ${error.message}`);
       setError('Failed to approve teacher. Please try again.');
     } finally {
       setProcessing(prev => ({ ...prev, [teacherId]: null }));
@@ -119,39 +123,10 @@ export default function AdminPortal() {
       console.log(`Teacher ${teacherId} denied successfully`);
       
     } catch (error) {
+      // Error Tracking: Add try-catch to all Firestore operations and use alert() to show any errors
+      alert('Error Code: ' + error.code + '\nMessage: ' + error.message);
       console.error('Error denying teacher:', error);
-      alert(`Failed to deny teacher: ${error.message}`);
       setError('Failed to deny teacher. Please try again.');
-    } finally {
-      setProcessing(prev => ({ ...prev, [teacherId]: null }));
-    }
-  };
-
-  const handleReset = async (teacherId) => {
-    setProcessing(prev => ({ ...prev, [teacherId]: 'resetting' }));
-    setError('');
-
-    try {
-      console.log(`Resetting teacher verification: ${teacherId}`);
-      
-      const teacherRef = doc(db, 'users', teacherId);
-      await updateDoc(teacherRef, {
-        verificationStatus: null,
-        isVerified: false,
-        documentBase64: null,
-        documentName: null,
-        documentSize: null,
-        documentType: null,
-        submittedAt: null,
-        reviewedBy: auth.currentUser?.email || 'admin'
-      });
-      
-      console.log(`Teacher ${teacherId} verification reset successfully`);
-      
-    } catch (error) {
-      console.error('Error resetting teacher:', error);
-      alert(`Failed to reset teacher: ${error.message}`);
-      setError('Failed to reset teacher. Please try again.');
     } finally {
       setProcessing(prev => ({ ...prev, [teacherId]: null }));
     }
@@ -194,11 +169,11 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-[#FBFBFD] py-8 px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Premium Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-zinc-900 to-zinc-700 rounded-xl flex items-center justify-center shadow-lg">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -206,7 +181,7 @@ export default function AdminPortal() {
                 <p className="text-zinc-600 mt-1">Teacher Verification Dashboard</p>
               </div>
             </div>
-            <div className="text-sm text-zinc-500">
+            <div className="text-sm text-zinc-500 bg-zinc-100 px-3 py-1 rounded-full">
               {auth.currentUser?.email}
             </div>
           </div>
@@ -220,7 +195,7 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
             <div className="flex items-center gap-3">
@@ -304,27 +279,27 @@ export default function AdminPortal() {
                         </div>
                       </div>
 
-                      {/* Document Preview: Render the Base64 image using <img src={user.documentBase64} */}
+                      {/* Preview: Render the Base64 document in an <img> tag */}
                       {teacher.documentBase64 && (
                         <div className="mt-3">
                           <div className="mb-2">
                             <p className="text-sm font-medium text-zinc-700 mb-2">Document Preview:</p>
                             {teacher.documentBase64.startsWith('data:image/') ? (
-                              <div className="border border-zinc-200 rounded-xl p-2 bg-zinc-50">
+                              <div className="border border-zinc-200 rounded-xl p-3 bg-zinc-50 inline-block">
                                 <img 
                                   src={teacher.documentBase64} 
-                                  className="w-64 h-auto rounded-lg border" 
-                                  alt="Proof" 
+                                  className="w-64 h-auto rounded-lg border shadow-sm" 
+                                  alt="Verification Document" 
                                 />
                               </div>
                             ) : (
-                              <div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50">
+                              <div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50 inline-block">
                                 <p className="text-sm text-zinc-600">
                                   <FileText className="w-4 h-4 inline mr-2" />
                                   {teacher.documentName || 'Document'} ({(teacher.documentSize / 1024 / 1024).toFixed(2)} MB)
                                 </p>
                                 <p className="text-xs text-zinc-500 mt-1">
-                                  PDF/Document files cannot be previewed directly. Click View Document to open in new tab.
+                                  PDF/Document files cannot be previewed directly.
                                 </p>
                               </div>
                             )}
@@ -355,66 +330,46 @@ export default function AdminPortal() {
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
                           >
-                            <FileText className="w-4 h-4" />
-                            View Document
+                            <Eye className="w-4 h-4" />
+                            View Full Document
                           </button>
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-col gap-2 ml-6">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleApprove(teacher.id)}
-                          disabled={processing[teacher.id] === 'approving'}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {processing[teacher.id] === 'approving' ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Approving...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Approve</span>
-                            </>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => handleDeny(teacher.id)}
-                          disabled={processing[teacher.id] === 'denying'}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {processing[teacher.id] === 'denying' ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Denying...</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              <span>Deny</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      
                       <button
-                        onClick={() => handleReset(teacher.id)}
-                        disabled={processing[teacher.id] === 'resetting'}
-                        className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleApprove(teacher.id)}
+                        disabled={processing[teacher.id] === 'approving'}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {processing[teacher.id] === 'resetting' ? (
+                        {processing[teacher.id] === 'approving' ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Resetting...</span>
+                            <span>Approving...</span>
                           </>
                         ) : (
                           <>
-                            <AlertTriangle className="w-4 h-4" />
-                            <span>Reset</span>
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Approve</span>
+                          </>
+                        )}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDeny(teacher.id)}
+                        disabled={processing[teacher.id] === 'denying'}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {processing[teacher.id] === 'denying' ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Denying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4" />
+                            <span>Deny</span>
                           </>
                         )}
                       </button>
