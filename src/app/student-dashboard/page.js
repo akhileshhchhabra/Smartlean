@@ -260,14 +260,14 @@ export default function StudentDashboardHome() {
           <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">{pendingTasks.length}</div>
           <div className="text-zinc-400 text-sm mt-1">Pending Tasks</div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+        {/* <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
           <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">92%</div>
           <div className="text-zinc-400 text-sm mt-1">Attendance</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
           <div className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] font-['Syne']">3.8</div>
           <div className="text-zinc-400 text-sm mt-1">Current GPA</div>
-        </div>
+        </div> */}
       </div>
 
       {/* Personalized Courses Section */}

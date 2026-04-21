@@ -74,17 +74,20 @@ export default function LoginPage() {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          const currentDate = new Date();
+          const subscriptionExpiry = userData.subscriptionExpiry ? new Date(userData.subscriptionExpiry) : null;
           
-          // Redirect based on role
+          // Smart subscription logic for students
           if (userData.role === 'Teacher') {
             console.log('Redirecting teacher to dashboard');
             router.push('/teacher-dashboard');
           } else if (userData.role === 'Student') {
-            if (userData.hasSelectedPlan === true) {
-              console.log('Redirecting student to dashboard');
+            // Check if user has active subscription
+            if (userData.subscriptionStatus === 'active' && subscriptionExpiry && currentDate <= subscriptionExpiry) {
+              console.log('Student has active subscription, redirecting to dashboard');
               router.push('/student-dashboard');
             } else {
-              console.log('Redirecting student to subscribe');
+              console.log('Student needs subscription or plan expired, redirecting to subscribe');
               router.push('/subscribe');
             }
           } else {

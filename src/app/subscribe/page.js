@@ -13,11 +13,21 @@ export default function SubscribePage() {
     if (user) {
       try {
         const userRef = doc(db, 'users', user.uid);
+        
+        // Calculate expiry date (current date + 30 days)
+        const currentDate = new Date();
+        const expiryDate = new Date(currentDate);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        
         await setDoc(userRef, {
           subscriptionPlan: planType,
+          subscriptionStatus: 'active',
+          subscriptionExpiry: expiryDate.toISOString(),
           hasSelectedPlan: true,
           planSelectedAt: new Date().toISOString()
         }, { merge: true });
+        
+        console.log('Subscription activated, redirecting to dashboard');
         router.push('/student-dashboard');
       } catch (err) {
         console.error("Error updating plan:", err);

@@ -37,7 +37,12 @@ export function AuthProvider({ children }) {
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUser({ ...user, ...userData });
+            setUser({ 
+              ...user, 
+              ...userData,
+              subscriptionStatus: userData.subscriptionStatus || 'inactive',
+              subscriptionExpiry: userData.subscriptionExpiry || null
+            });
           } else {
             console.log('User document not found');
             setUser(user);
